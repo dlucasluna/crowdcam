@@ -28,6 +28,7 @@ export default function AdminPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
   const [showQR, setShowQR] = useState(false);
+  const [copiedOutput, setCopiedOutput] = useState(false);
 
   const updateParticipantsList = useCallback(() => {
     setParticipants(Array.from(peersRef.current.values()));
