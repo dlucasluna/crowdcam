@@ -223,13 +223,33 @@ export default function DashboardPage() {
             Cria e gere as tuas salas CrowdCam.
           </p>
 
+          {showCreateForm && subscribed && (
+            <div className="mb-3 flex gap-2">
+              <input
+                type="text"
+                className="flex-1 px-4 py-3 bg-secondary border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                placeholder="Nome da sala (opcional)"
+                value={newRoomName}
+                onChange={(e) => setNewRoomName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreateRoom()}
+                autoFocus
+              />
+              <button
+                onClick={() => { setShowCreateForm(false); setNewRoomName(""); }}
+                className="px-3 py-2 rounded-lg border border-border text-muted-foreground text-sm hover:bg-card transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
           <button
             className="w-full inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-primary text-primary-foreground font-medium text-base hover:bg-primary/90 transition-colors disabled:opacity-50"
             onClick={handleCreateRoom}
             disabled={creating || !subscribed}
           >
             <Monitor className="w-5 h-5" />
-            {creating ? "Criando..." : "Criar nova sala"}
+            {creating ? "Criando..." : showCreateForm ? "Confirmar criação" : "Criar nova sala"}
           </button>
           {!subscribed && !checkingSubscription && (
             <p className="text-xs text-muted-foreground mt-2">Assina o plano Pro para criar salas</p>
