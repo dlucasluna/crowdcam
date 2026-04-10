@@ -39,6 +39,21 @@ serve(async (req) => {
     if (!email) throw new Error("User email not available");
     logStep("User authenticated", { email });
 
+    // Bypass: full access without subscription
+    const BYPASS_EMAILS = ["lebluna95@gmail.com"];
+    if (BYPASS_EMAILS.includes(email.toLowerCase())) {
+      logStep("Bypass subscription for owner", { email });
+      return new Response(JSON.stringify({
+        subscribed: true,
+        status: "active",
+        trial_end: null,
+        subscription_end: null,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email, limit: 1 });
 
