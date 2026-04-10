@@ -124,22 +124,22 @@ export default function AdminPage() {
     );
   }, [selectedId, roomId]);
 
-  const broadcastSelection = useCallback(() => {
-    if (!roomId || !channelRef.current) return;
+  // Broadcast selection only when it changes (not periodically)
+  const lastBroadcastedRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (status !== "connected" || !channelRef.current || !roomId) return;
+    // Skip if we already broadcasted this exact selection
+    if (lastBroadcastedRef.current === selectedId) return;
+    lastBroadcastedRef.current = selectedId;
+
     const peer = selectedId ? peersRef.current.get(selectedId) : null;
     sendSignal(channelRef.current, {
       type: "select",
       from: adminIdRef.current,
       payload: { selectedId, selectedName: peer?.name || "" },
     });
-  }, [roomId, selectedId]);
-
-  useEffect(() => {
-    if (status !== "connected") return;
-    broadcastSelection();
-    const interval = window.setInterval(broadcastSelection, 2000);
-    return () => window.clearInterval(interval);
-  }, [status, broadcastSelection]);
+  }, [status, selectedId, roomId]);
 
   const handleSelect = (id: string) => {
     setSelectedId((prev) => (prev === id ? null : id));
