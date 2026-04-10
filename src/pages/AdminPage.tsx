@@ -32,6 +32,14 @@ export default function AdminPage() {
   const [showQR, setShowQR] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
   const [showNameOnOutput, setShowNameOnOutput] = useState(true);
+  const [roomName, setRoomName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!roomId) return;
+    findRoom(roomId).then((room) => {
+      if (room) setRoomName((room as any).name || null);
+    });
+  }, [roomId]);
 
   const updateParticipantsList = useCallback(() => {
     setParticipants(Array.from(peersRef.current.values()));
