@@ -145,7 +145,7 @@ export default function AdminPage() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
-  const [copiedOutput, setCopiedOutput] = useState(false);
+
 
   const openOutput = () => {
     window.open(`/output/${roomId}`, "_blank", "width=1920,height=1080");
