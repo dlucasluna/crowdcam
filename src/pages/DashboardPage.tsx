@@ -282,9 +282,12 @@ export default function DashboardPage() {
                     className="flex items-center justify-between px-4 py-3 rounded-lg border border-border transition-colors"
                     style={{ background: "hsl(var(--card))" }}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-sm font-semibold tracking-wider text-primary">{room.code}</span>
-                      <span className="text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="font-mono text-sm font-semibold tracking-wider text-primary flex-shrink-0">{room.code}</span>
+                      {(room as any).name && (
+                        <span className="text-sm text-foreground truncate">{(room as any).name}</span>
+                      )}
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
                         {new Date(room.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
