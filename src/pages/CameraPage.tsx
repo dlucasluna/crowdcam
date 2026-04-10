@@ -134,10 +134,13 @@ export default function CameraPage() {
 
       const channel = await createSignalingChannel(roomId, id, async (msg: SignalMessage) => {
         if (msg.type === "offer") {
-          let pc = peersRef.current.get(msg.from);
-          if (!pc) {
-            pc = createPeerForViewer(msg.from)!;
+          // Close existing connection for this viewer if any (they're sending a new offer)
+          const existingPc = peersRef.current.get(msg.from);
+          if (existingPc) {
+            existingPc.close();
+            peersRef.current.delete(msg.from);
           }
+          const pc = createPeerForViewer(msg.from);
           if (pc) {
             await handleOffer(pc, channel, id, msg.from, msg.payload);
           }
