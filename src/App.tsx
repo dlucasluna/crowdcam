@@ -11,6 +11,7 @@ import AuthPage from "./pages/AuthPage";
 import CameraPage from "./pages/CameraPage";
 import AdminPage from "./pages/AdminPage";
 import OutputPage from "./pages/OutputPage";
+import SuperAdminPage from "./pages/SuperAdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/admin/:roomId" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+            <Route path="/super-admin" element={<ProtectedRoute><SuperAdminPage /></ProtectedRoute>} />
             <Route path="/cam/:roomId" element={<CameraPage />} />
             <Route path="/output/:roomId" element={<OutputPage />} />
             <Route path="*" element={<NotFound />} />
