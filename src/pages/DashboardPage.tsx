@@ -172,14 +172,20 @@ export default function DashboardPage() {
           )}
 
           {/* Subscribed info */}
+          {subscribed && isTrial && trialEnd && (
+            <div className="mb-6">
+              <TrialCountdown trialEnd={trialEnd} />
+            </div>
+          )}
+
           {subscribed && (
             <div className="mb-6 flex items-center justify-between p-4 rounded-xl border border-border"
               style={{ background: "hsl(var(--card))" }}>
               <div className="text-left">
                 <p className="text-sm font-medium flex items-center gap-1.5">
-                  <Crown className="w-4 h-4 text-primary" /> Plano Pro ativo
+                  <Crown className="w-4 h-4 text-primary" /> {isTrial ? "Trial Pro ativo" : "Plano Pro ativo"}
                 </p>
-                {subscriptionEnd && (
+                {!isTrial && subscriptionEnd && (
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Renova em {new Date(subscriptionEnd).toLocaleDateString("pt-BR")}
                   </p>
