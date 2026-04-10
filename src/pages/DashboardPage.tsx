@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { generateRoomCode, createRoom, listActiveRooms, deactivateRoom } from "@/lib/room-utils";
 import { Monitor, Camera, Trash2, LogIn, RefreshCw, LogOut, User, Crown, CreditCard, Check, Clock } from "lucide-react";
+import TrialCountdown from "@/components/TrialCountdown";
 import { toast } from "sonner";
 
 type Room = { id: string; code: string; created_at: string; is_active: boolean };
