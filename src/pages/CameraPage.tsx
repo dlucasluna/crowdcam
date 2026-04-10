@@ -154,7 +154,7 @@ export default function CameraPage() {
 
       channelRef.current = channel;
 
-      // Send join immediately, then re-announce periodically for late joiners
+      // Send join immediately, then re-announce periodically to catch late joiners (admin/output)
       const announceJoin = () => {
         sendSignal(channel, {
           type: "join",
@@ -164,9 +164,8 @@ export default function CameraPage() {
       };
       
       announceJoin();
-      // Re-announce every 3s for 15s to catch late-subscribing admins/outputs
-      const reannounceInterval = setInterval(announceJoin, 3000);
-      setTimeout(() => clearInterval(reannounceInterval), 15000);
+      // Re-announce every 5s continuously so late-opening output pages discover this camera
+      const reannounceInterval = setInterval(announceJoin, 5000);
 
       setStatus("live");
     } catch (err: any) {
@@ -176,7 +175,14 @@ export default function CameraPage() {
     }
   }, [roomId, participantName, cameraFacing, detectCapabilities, createPeerForViewer]);
 
+  // Store interval ref for cleanup
+  const reannounceRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const disconnect = useCallback(() => {
+    if (reannounceRef.current) {
+      clearInterval(reannounceRef.current);
+      reannounceRef.current = null;
+    }
     if (channelRef.current) {
       sendSignal(channelRef.current, {
         type: "leave",
