@@ -15,7 +15,8 @@ import {
 import { getCameraLink } from "@/lib/room-utils";
 import QRModal from "@/components/QRModal";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { Camera, QrCode, Maximize2 } from "lucide-react";
+import { Camera, QrCode, Maximize2, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 
 export default function AdminPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -143,8 +144,19 @@ export default function AdminPage() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
+  const [copiedOutput, setCopiedOutput] = useState(false);
+
   const openOutput = () => {
     window.open(`/output/${roomId}`, "_blank", "width=1920,height=1080");
+  };
+
+  const copyOutputLink = () => {
+    const link = `${window.location.origin}/output/${roomId}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedOutput(true);
+      toast.success("Link do output copiado!");
+      setTimeout(() => setCopiedOutput(false), 2000);
+    });
   };
 
   const cameraLink = getCameraLink(roomId || "");
@@ -181,6 +193,13 @@ export default function AdminPage() {
           >
             <QrCode className="w-4 h-4" />
             QR Code
+          </button>
+          <button
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border-light text-foreground text-[13px] font-medium hover:bg-card transition-colors"
+            onClick={copyOutputLink}
+          >
+            {copiedOutput ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+            {copiedOutput ? "Copiado!" : "Copiar link output"}
           </button>
           <button
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
