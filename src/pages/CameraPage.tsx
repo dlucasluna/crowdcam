@@ -33,6 +33,7 @@ export default function CameraPage() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const participantIdRef = useRef<string>("");
+  const reannounceRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [status, setStatus] = useState<"name" | "idle" | "connecting" | "live" | "error">("name");
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +155,7 @@ export default function CameraPage() {
 
       channelRef.current = channel;
 
-      // Send join immediately, then re-announce periodically for late joiners
+      // Send join immediately, then re-announce periodically to catch late joiners (admin/output)
       const announceJoin = () => {
         sendSignal(channel, {
           type: "join",
@@ -164,9 +165,9 @@ export default function CameraPage() {
       };
       
       announceJoin();
-      // Re-announce every 3s for 15s to catch late-subscribing admins/outputs
-      const reannounceInterval = setInterval(announceJoin, 3000);
-      setTimeout(() => clearInterval(reannounceInterval), 15000);
+      // Re-announce every 5s continuously so late-opening output pages discover this camera
+      const reannounceInterval = setInterval(announceJoin, 5000);
+      reannounceRef.current = reannounceInterval;
 
       setStatus("live");
     } catch (err: any) {
@@ -177,6 +178,10 @@ export default function CameraPage() {
   }, [roomId, participantName, cameraFacing, detectCapabilities, createPeerForViewer]);
 
   const disconnect = useCallback(() => {
+    if (reannounceRef.current) {
+      clearInterval(reannounceRef.current);
+      reannounceRef.current = null;
+    }
     if (channelRef.current) {
       sendSignal(channelRef.current, {
         type: "leave",
