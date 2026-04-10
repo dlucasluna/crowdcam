@@ -122,8 +122,7 @@ export default function AdminPage() {
     );
   }, [selectedId, roomId]);
 
-  // Also broadcast selection via Realtime for cross-browser
-  useEffect(() => {
+  const broadcastSelection = useCallback(() => {
     if (!roomId || !channelRef.current) return;
     const peer = selectedId ? peersRef.current.get(selectedId) : null;
     sendSignal(channelRef.current, {
@@ -131,7 +130,14 @@ export default function AdminPage() {
       from: adminIdRef.current,
       payload: { selectedId, selectedName: peer?.name || "" },
     });
-  }, [selectedId, roomId]);
+  }, [roomId, selectedId]);
+
+  useEffect(() => {
+    if (status !== "connected") return;
+    broadcastSelection();
+    const interval = window.setInterval(broadcastSelection, 2000);
+    return () => window.clearInterval(interval);
+  }, [status, broadcastSelection]);
 
   const handleSelect = (id: string) => {
     setSelectedId((prev) => (prev === id ? null : id));
