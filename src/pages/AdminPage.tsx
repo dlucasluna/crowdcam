@@ -125,10 +125,11 @@ export default function AdminPage() {
   // Also broadcast selection via Realtime for cross-browser
   useEffect(() => {
     if (!roomId || !channelRef.current) return;
+    const peer = selectedId ? peersRef.current.get(selectedId) : null;
     sendSignal(channelRef.current, {
       type: "select",
       from: adminIdRef.current,
-      payload: { selectedId },
+      payload: { selectedId, selectedName: peer?.name || "" },
     });
   }, [selectedId, roomId]);
 
