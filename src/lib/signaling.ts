@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-export type SignalType = "join" | "offer" | "answer" | "ice" | "select" | "leave" | "request-join";
+export type SignalType = "join" | "offer" | "answer" | "ice" | "select" | "leave" | "request-join" | "show-name";
 
 export interface SignalMessage {
   type: SignalType;
