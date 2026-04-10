@@ -33,6 +33,7 @@ export default function CameraPage() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const participantIdRef = useRef<string>("");
+  const reannounceRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [status, setStatus] = useState<"name" | "idle" | "connecting" | "live" | "error">("name");
   const [error, setError] = useState<string | null>(null);
@@ -166,6 +167,7 @@ export default function CameraPage() {
       announceJoin();
       // Re-announce every 5s continuously so late-opening output pages discover this camera
       const reannounceInterval = setInterval(announceJoin, 5000);
+      reannounceRef.current = reannounceInterval;
 
       setStatus("live");
     } catch (err: any) {
