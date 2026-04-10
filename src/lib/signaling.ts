@@ -10,11 +10,11 @@ export interface SignalMessage {
   payload?: any;
 }
 
-export function createSignalingChannel(
+export async function createSignalingChannel(
   roomId: string,
   participantId: string,
   onMessage: (msg: SignalMessage) => void
-): RealtimeChannel {
+): Promise<RealtimeChannel> {
   const channel = supabase.channel(`room:${roomId}`, {
     config: { broadcast: { self: false } },
   });
@@ -27,9 +27,15 @@ export function createSignalingChannel(
     }
   });
 
-  channel.subscribe();
-
-  return channel;
+  return new Promise<RealtimeChannel>((resolve) => {
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        resolve(channel);
+      }
+    });
+    // Fallback in case callback doesn't fire
+    setTimeout(() => resolve(channel), 3000);
+  });
 }
 
 export function sendSignal(
