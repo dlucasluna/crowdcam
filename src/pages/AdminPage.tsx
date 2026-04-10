@@ -34,50 +34,55 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!roomId) return;
+    let cancelled = false;
 
     const adminId = adminIdRef.current;
 
-    const channel = createSignalingChannel(roomId, adminId, async (msg: SignalMessage) => {
-      if (msg.type === "join") {
-        // A camera joined — create peer connection and send offer
-        const cameraId = msg.from;
-        const cameraName = msg.payload?.name || cameraId;
+    const init = async () => {
+      const channel = await createSignalingChannel(roomId, adminId, async (msg: SignalMessage) => {
+        if (msg.type === "join") {
+          const cameraId = msg.from;
+          const cameraName = msg.payload?.name || cameraId;
 
-        const stream = new MediaStream();
-        const pc = createPeerConnection(channel, adminId, cameraId, (remoteStream) => {
-          const peer = peersRef.current.get(cameraId);
-          if (peer) {
-            peer.stream = remoteStream;
-            updateParticipantsList();
-          }
-        });
+          const pc = createPeerConnection(channel, adminId, cameraId, (remoteStream) => {
+            const peer = peersRef.current.get(cameraId);
+            if (peer) {
+              peer.stream = remoteStream;
+              updateParticipantsList();
+            }
+          });
 
-        peersRef.current.set(cameraId, { id: cameraId, name: cameraName, pc, stream });
-        updateParticipantsList();
-
-        await createOffer(pc, channel, adminId, cameraId);
-      } else if (msg.type === "answer") {
-        const pc = peersRef.current.get(msg.from)?.pc;
-        if (pc) await handleAnswer(pc, msg.payload);
-      } else if (msg.type === "ice") {
-        const pc = peersRef.current.get(msg.from)?.pc;
-        if (pc) await handleIceCandidate(pc, msg.payload);
-      } else if (msg.type === "leave") {
-        const peer = peersRef.current.get(msg.from);
-        if (peer) {
-          peer.pc.close();
-          peersRef.current.delete(msg.from);
+          peersRef.current.set(cameraId, { id: cameraId, name: cameraName, pc, stream: null });
           updateParticipantsList();
-          setSelectedId((prev) => (prev === msg.from ? null : prev));
-        }
-      }
-    });
 
-    channelRef.current = channel;
-    setStatus("connected");
+          await createOffer(pc, channel, adminId, cameraId);
+        } else if (msg.type === "answer") {
+          const pc = peersRef.current.get(msg.from)?.pc;
+          if (pc) await handleAnswer(pc, msg.payload);
+        } else if (msg.type === "ice") {
+          const pc = peersRef.current.get(msg.from)?.pc;
+          if (pc) await handleIceCandidate(pc, msg.payload);
+        } else if (msg.type === "leave") {
+          const peer = peersRef.current.get(msg.from);
+          if (peer) {
+            peer.pc.close();
+            peersRef.current.delete(msg.from);
+            updateParticipantsList();
+            setSelectedId((prev) => (prev === msg.from ? null : prev));
+          }
+        }
+      });
+
+      if (cancelled) { channel.unsubscribe(); return; }
+      channelRef.current = channel;
+      setStatus("connected");
+    };
+
+    init();
 
     return () => {
-      channel.unsubscribe();
+      cancelled = true;
+      channelRef.current?.unsubscribe();
       peersRef.current.forEach((p) => p.pc.close());
       peersRef.current.clear();
     };
