@@ -12,35 +12,43 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
   try {
-    // Verify auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData.user) throw new Error("Not authenticated");
 
-    // Check admin role
-    const { data: roleData } = await supabaseClient
+    const token = authHeader.replace("Bearer ", "");
+
+    // Use getClaims for auth
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) throw new Error("Not authenticated");
+    const userId = claimsData.claims.sub as string;
+
+    // Check admin role with service role client
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", userData.user.id)
+      .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
-
     if (!roleData) throw new Error("Not authorized - admin role required");
 
     // Get all profiles
-    const { data: profiles } = await supabaseClient.from("profiles").select("user_id, display_name");
+    const { data: profiles } = await adminClient.from("profiles").select("user_id, display_name");
 
     // Get all user emails from auth
-    const { data: { users } } = await supabaseClient.auth.admin.listUsers({ perPage: 1000 });
+    const { data: { users } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2025-08-27.basil" });
 
@@ -74,6 +82,7 @@ serve(async (req) => {
 
       return {
         email,
+        user_id: u.id,
         display_name: profiles?.find((p) => p.user_id === u.id)?.display_name || email,
         subscribed: !!sub,
         status: sub?.status || null,
