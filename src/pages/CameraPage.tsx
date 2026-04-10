@@ -271,6 +271,13 @@ export default function CameraPage() {
     await applyConstraint({ exposureMode: "continuous" });
   }, [applyConstraint]);
 
+  // Auto-connect when status becomes "idle" (after name entry)
+  useEffect(() => {
+    if (status === "idle") {
+      connect();
+    }
+  }, [status, connect]);
+
   useEffect(() => {
     return () => {
       channelRef.current?.unsubscribe();
