@@ -8,6 +8,8 @@ type AuthContextType = {
   loading: boolean;
   subscribed: boolean;
   subscriptionEnd: string | null;
+  trialEnd: string | null;
+  isTrial: boolean;
   checkingSubscription: boolean;
   refreshSubscription: () => Promise<void>;
   signOut: () => Promise<void>;
