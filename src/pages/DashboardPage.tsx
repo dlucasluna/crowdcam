@@ -1,19 +1,31 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { generateRoomCode, createRoom, listActiveRooms, deactivateRoom } from "@/lib/room-utils";
-import { Monitor, Camera, Trash2, LogIn, RefreshCw, LogOut, User } from "lucide-react";
+import { Monitor, Camera, Trash2, LogIn, RefreshCw, LogOut, User, Crown, CreditCard, Check } from "lucide-react";
 import { toast } from "sonner";
 
 type Room = { id: string; code: string; created_at: string; is_active: boolean };
 
-export default function Home() {
+export default function DashboardPage() {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { user, signOut, subscribed, subscriptionEnd, checkingSubscription, refreshSubscription } = useAuth();
   const [joinCode, setJoinCode] = useState("");
   const [creating, setCreating] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
+
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (checkout === "success") {
+      toast.success("Assinatura ativada! Bem-vindo ao Pro 🎉");
+      refreshSubscription();
+    } else if (checkout === "cancel") {
+      toast.info("Checkout cancelado");
+    }
+  }, [searchParams, refreshSubscription]);
 
   const fetchRooms = async () => {
     setLoadingRooms(true);
@@ -30,6 +42,10 @@ export default function Home() {
   useEffect(() => { fetchRooms(); }, []);
 
   const handleCreateRoom = async () => {
+    if (!subscribed) {
+      toast.error("Precisas de uma assinatura Pro para criar salas");
+      return;
+    }
     setCreating(true);
     try {
       const code = generateRoomCode();
@@ -64,6 +80,26 @@ export default function Home() {
     navigate("/auth");
   };
 
+  const handleSubscribe = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout");
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err) {
+      toast.error("Erro ao iniciar checkout");
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err) {
+      toast.error("Erro ao abrir portal de gestão");
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Top bar */}
@@ -73,6 +109,13 @@ export default function Home() {
           <span>CrowdCam</span>
         </div>
         <div className="flex items-center gap-3">
+          {subscribed && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+              style={{ background: "hsl(var(--success-soft))", color: "hsl(var(--success))" }}>
+              <Crown className="w-3 h-3" />
+              Pro
+            </span>
+          )}
           <span className="text-sm text-muted-foreground flex items-center gap-1.5">
             <User className="w-3.5 h-3.5" />
             {user?.user_metadata?.full_name || user?.email}
@@ -90,29 +133,92 @@ export default function Home() {
       {/* Main */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-[520px] text-center">
+          {/* Subscription banner */}
+          {!checkingSubscription && !subscribed && (
+            <div className="mb-8 p-5 rounded-xl border-2 border-primary/30 text-left"
+              style={{ background: "hsl(var(--card))" }}>
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-lg" style={{ background: "hsl(var(--accent-soft))" }}>
+                  <Crown className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1">CrowdCam Pro</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Salas e câmeras ilimitadas para os teus eventos.
+                  </p>
+                  <ul className="text-sm text-muted-foreground space-y-1.5 mb-4">
+                    {["Câmeras ilimitadas", "Salas ilimitadas", "Multi-output simultâneo", "Suporte prioritário"].map((f) => (
+                      <li key={f} className="flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5 text-primary" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex items-baseline gap-1 mb-3">
+                    <span className="text-2xl font-bold">4€</span>
+                    <span className="text-sm text-muted-foreground">/mês</span>
+                  </div>
+                  <button
+                    onClick={handleSubscribe}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Assinar Pro
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Subscribed info */}
+          {subscribed && (
+            <div className="mb-6 flex items-center justify-between p-4 rounded-xl border border-border"
+              style={{ background: "hsl(var(--card))" }}>
+              <div className="text-left">
+                <p className="text-sm font-medium flex items-center gap-1.5">
+                  <Crown className="w-4 h-4 text-primary" /> Plano Pro ativo
+                </p>
+                {subscriptionEnd && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Renova em {new Date(subscriptionEnd).toLocaleDateString("pt-BR")}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={handleManageSubscription}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                Gerir assinatura
+              </button>
+            </div>
+          )}
+
           <h1
-            className="text-5xl font-bold tracking-tight mb-2"
+            className="text-4xl font-bold tracking-tight mb-2"
             style={{
               background: "linear-gradient(135deg, #fff 0%, #888 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}
           >
-            Cada celular é uma câmera
+            As tuas salas
           </h1>
-          <p className="text-muted-foreground text-base mb-10 leading-relaxed">
-            Transforme o público do seu evento em operadores de câmera.
-            Transmita qualquer ângulo direto para o telão.
+          <p className="text-muted-foreground text-base mb-8 leading-relaxed">
+            Cria e gere as tuas salas CrowdCam.
           </p>
 
           <button
             className="w-full inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-primary text-primary-foreground font-medium text-base hover:bg-primary/90 transition-colors disabled:opacity-50"
             onClick={handleCreateRoom}
-            disabled={creating}
+            disabled={creating || !subscribed}
           >
             <Monitor className="w-5 h-5" />
             {creating ? "Criando..." : "Criar nova sala"}
           </button>
+          {!subscribed && !checkingSubscription && (
+            <p className="text-xs text-muted-foreground mt-2">Assina o plano Pro para criar salas</p>
+          )}
 
           {/* Active rooms */}
           <div className="mt-8 text-left">
@@ -195,10 +301,6 @@ export default function Home() {
               Entrar como câmera
             </button>
           </form>
-
-          <p className="text-xs text-muted-foreground">
-            v3.0 — CrowdCam SaaS
-          </p>
         </div>
       </div>
     </div>

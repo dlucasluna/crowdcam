@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Monitor, Camera, Zap, Users, Tv, ArrowRight, QrCode } from "lucide-react";
+import { Monitor, Camera, Zap, Users, Tv, ArrowRight, QrCode, Crown, Check, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LandingPage() {
@@ -174,27 +174,48 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Final CTA */}
+      {/* Pricing */}
       <section className="px-6 py-20 border-t border-border/50">
-        <div className="max-w-[560px] mx-auto text-center">
+        <div className="max-w-[480px] mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4"
             style={{
               background: "linear-gradient(135deg, #fff 0%, #aaa 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}>
-            Pronto para começar?
+            Simples e acessível
           </h2>
-          <p className="text-muted-foreground mb-8">
-            Cria a tua primeira sala em segundos. Sem cartão de crédito.
+          <p className="text-muted-foreground mb-10">
+            Um plano, tudo incluído. Cancela quando quiseres.
           </p>
-          <button
-            onClick={handleCTA}
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-lg bg-primary text-primary-foreground font-medium text-base hover:bg-primary/90 transition-colors"
-          >
-            Começar grátis
-            <ArrowRight className="w-4 h-4" />
-          </button>
+
+          <div className="p-6 rounded-xl border-2 border-primary/40 text-left"
+            style={{ background: "hsl(var(--card))" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Crown className="w-5 h-5 text-primary" />
+              <span className="font-semibold text-lg">CrowdCam Pro</span>
+            </div>
+            <div className="flex items-baseline gap-1 mb-4">
+              <span className="text-4xl font-bold">4€</span>
+              <span className="text-muted-foreground">/mês</span>
+            </div>
+            <ul className="text-sm text-muted-foreground space-y-2 mb-6">
+              {["Câmeras ilimitadas", "Salas ilimitadas", "Multi-output simultâneo", "Latência ultra-baixa (WebRTC)", "Suporte prioritário"].map((f) => (
+                <li key={f} className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={handleCTA}
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium text-base hover:bg-primary/90 transition-colors"
+            >
+              <CreditCard className="w-4 h-4" />
+              Começar agora
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </section>
 
