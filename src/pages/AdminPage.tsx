@@ -145,7 +145,7 @@ export default function AdminPage() {
     channelRef.current?.unsubscribe();
     peersRef.current.forEach((p) => p.pc.close());
     peersRef.current.clear();
-    navigate("/");
+    navigate("/dashboard");
   };
 
   const openOutput = () => {
