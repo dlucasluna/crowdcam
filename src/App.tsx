@@ -5,7 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import Home from "./pages/Index";
+import LandingPage from "./pages/LandingPage";
+import DashboardPage from "./pages/DashboardPage";
 import AuthPage from "./pages/AuthPage";
 import CameraPage from "./pages/CameraPage";
 import AdminPage from "./pages/AdminPage";
@@ -22,8 +23,9 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/admin/:roomId" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="/cam/:roomId" element={<CameraPage />} />
             <Route path="/output/:roomId" element={<OutputPage />} />
