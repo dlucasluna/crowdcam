@@ -193,7 +193,10 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
       if (data?.subscriptions) {
         const map: Record<string, SubscriptionInfo & { email?: string }> = {};
         for (const s of data.subscriptions) {
-          map[s.display_name || s.email] = { ...s, email: s.email };
+          // Key by user_id for reliable matching
+          if (s.user_id) {
+            map[s.user_id] = { ...s, email: s.email };
+          }
         }
         setSubs(map);
       }
@@ -209,8 +212,8 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
     fetchSubs();
   }, [fetchSubs]);
 
-  const handleAssignPlan = async (displayName: string, email: string) => {
-    setActionLoading(displayName);
+  const handleAssignPlan = async (userId: string, email: string) => {
+    setActionLoading(userId);
     try {
       const { data, error } = await supabase.functions.invoke("admin-assign-plan", {
         body: { email, action: "assign" },
@@ -226,8 +229,8 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
     }
   };
 
-  const handleRemovePlan = async (displayName: string, email: string) => {
-    setActionLoading(displayName);
+  const handleRemovePlan = async (userId: string, email: string) => {
+    setActionLoading(userId);
     try {
       const { data, error } = await supabase.functions.invoke("admin-assign-plan", {
         body: { email, action: "remove" },
@@ -258,10 +261,10 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
         </thead>
         <tbody>
           {profiles.map((p) => {
-            const sub = subs[p.display_name || ""] || null;
+            const sub = subs[p.user_id] || null;
             const status = sub?.status;
             const email = sub?.email || p.display_name || "";
-            const isLoading = actionLoading === (p.display_name || p.user_id);
+            const isLoading = actionLoading === p.user_id;
             return (
               <tr key={p.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors">
                 <td className="px-4 py-3 font-medium">{p.display_name || "—"}</td>
@@ -289,7 +292,7 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
                   {!sub || !sub.subscribed ? (
                     <button
                       disabled={isLoading}
-                      onClick={() => handleAssignPlan(p.display_name || p.user_id, email)}
+                      onClick={() => handleAssignPlan(p.user_id, email)}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                       <Crown className="w-3 h-3" />
@@ -298,7 +301,7 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
                   ) : (
                     <button
                       disabled={isLoading}
-                      onClick={() => handleRemovePlan(p.display_name || p.user_id, email)}
+                      onClick={() => handleRemovePlan(p.user_id, email)}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
                     >
                       <Trash2 className="w-3 h-3" />

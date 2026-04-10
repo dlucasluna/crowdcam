@@ -16,24 +16,34 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
   try {
-    // Verify admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData.user) throw new Error("Not authenticated");
 
-    const { data: roleData } = await supabaseClient
+    const token = authHeader.replace("Bearer ", "");
+
+    // Use getClaims for auth
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) throw new Error("Not authenticated");
+    const userId = claimsData.claims.sub as string;
+
+    // Check admin role with service role client
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", userData.user.id)
+      .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
     if (!roleData) throw new Error("Not authorized - admin role required");
@@ -46,22 +56,12 @@ serve(async (req) => {
     const priceId = "price_1TKgvHAj2Jw5RGkh6ZW10OzL";
 
     if (action === "remove") {
-      // Cancel active subscription
       const customers = await stripe.customers.list({ email, limit: 1 });
       if (customers.data.length === 0) throw new Error("No Stripe customer found");
 
-      const subs = await stripe.subscriptions.list({
-        customer: customers.data[0].id,
-        status: "active",
-        limit: 1,
-      });
-      const trialSubs = await stripe.subscriptions.list({
-        customer: customers.data[0].id,
-        status: "trialing",
-        limit: 1,
-      });
+      const subs = await stripe.subscriptions.list({ customer: customers.data[0].id, status: "active", limit: 1 });
+      const trialSubs = await stripe.subscriptions.list({ customer: customers.data[0].id, status: "trialing", limit: 1 });
       const allSubs = [...subs.data, ...trialSubs.data];
-
       if (allSubs.length === 0) throw new Error("No active subscription found");
 
       await stripe.subscriptions.cancel(allSubs[0].id);
@@ -72,24 +72,15 @@ serve(async (req) => {
       });
     }
 
-    // Assign plan: find or create customer, create subscription
+    // Assign plan
     let customerId: string;
     const customers = await stripe.customers.list({ email, limit: 1 });
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Existing customer found", { customerId });
 
-      // Check if already subscribed
-      const existingSubs = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "active",
-        limit: 1,
-      });
-      const existingTrials = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "trialing",
-        limit: 1,
-      });
+      const existingSubs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
+      const existingTrials = await stripe.subscriptions.list({ customer: customerId, status: "trialing", limit: 1 });
       if (existingSubs.data.length > 0 || existingTrials.data.length > 0) {
         throw new Error("User already has an active subscription");
       }
@@ -99,7 +90,6 @@ serve(async (req) => {
       logStep("Customer created", { customerId });
     }
 
-    // Create subscription with no payment required (admin grant)
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
       items: [{ price: priceId }],
