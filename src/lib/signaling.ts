@@ -21,19 +21,22 @@ export async function createSignalingChannel(
 
   channel.on("broadcast", { event: "signal" }, ({ payload }) => {
     const msg = payload as SignalMessage;
+    console.log(`[Signal ${participantId}] Received:`, msg.type, "from:", msg.from, "to:", msg.to || "broadcast");
     // Ignore messages from self, accept broadcast or targeted messages
     if (msg.from !== participantId && (!msg.to || msg.to === participantId)) {
       onMessage(msg);
+    } else {
+      console.log(`[Signal ${participantId}] Ignored (self or not targeted)`);
     }
   });
 
   return new Promise<RealtimeChannel>((resolve) => {
     channel.subscribe((status) => {
+      console.log(`[Signal ${participantId}] Channel status:`, status);
       if (status === "SUBSCRIBED") {
         resolve(channel);
       }
     });
-    // Fallback in case callback doesn't fire
     setTimeout(() => resolve(channel), 3000);
   });
 }
@@ -42,6 +45,7 @@ export function sendSignal(
   channel: RealtimeChannel,
   message: SignalMessage
 ) {
+  console.log(`[Signal] Sending:`, message.type, "from:", message.from, "to:", message.to || "broadcast");
   channel.send({
     type: "broadcast",
     event: "signal",
