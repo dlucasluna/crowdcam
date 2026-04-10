@@ -261,10 +261,10 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
         </thead>
         <tbody>
           {profiles.map((p) => {
-            const sub = subs[p.display_name || ""] || null;
+            const sub = subs[p.user_id] || null;
             const status = sub?.status;
             const email = sub?.email || p.display_name || "";
-            const isLoading = actionLoading === (p.display_name || p.user_id);
+            const isLoading = actionLoading === p.user_id;
             return (
               <tr key={p.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors">
                 <td className="px-4 py-3 font-medium">{p.display_name || "—"}</td>
