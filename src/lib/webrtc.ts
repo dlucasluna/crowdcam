@@ -13,6 +13,31 @@ export interface PeerInfo {
   stream: MediaStream | null;
 }
 
+/**
+ * Apply low-latency bitrate cap on video senders.
+ * Lower max bitrate reduces buffering and improves perceived latency.
+ */
+export async function applyBitrateCap(pc: RTCPeerConnection, maxBitrateKbps = 1500) {
+  const senders = pc.getSenders();
+  for (const sender of senders) {
+    if (sender.track?.kind !== "video") continue;
+    const params = sender.getParameters();
+    if (!params.encodings || params.encodings.length === 0) {
+      params.encodings = [{}];
+    }
+    for (const encoding of params.encodings) {
+      encoding.maxBitrate = maxBitrateKbps * 1000;
+      // Prioritize framerate over resolution when bandwidth is constrained
+      (encoding as any).degradationPreference = "maintain-framerate";
+    }
+    try {
+      await sender.setParameters(params);
+    } catch (err) {
+      console.warn("[WebRTC] Could not set bitrate cap:", err);
+    }
+  }
+}
+
 export function createPeerConnection(
   channel: RealtimeChannel,
   localId: string,
@@ -21,8 +46,7 @@ export function createPeerConnection(
 ): RTCPeerConnection {
   const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
-  // Viewer side must explicitly request a remote video track,
-  // otherwise the offer may be created without an m=video section.
+  // Viewer side must explicitly request a remote video track
   pc.addTransceiver("video", { direction: "recvonly" });
 
   pc.onconnectionstatechange = () => {
@@ -81,6 +105,10 @@ export async function handleOffer(
   await pc.setRemoteDescription(new RTCSessionDescription(offer));
   const answer = await pc.createAnswer();
   await pc.setLocalDescription(answer);
+
+  // Apply bitrate cap on sender side (camera) after negotiation
+  await applyBitrateCap(pc);
+
   sendSignal(channel, {
     type: "answer",
     from: localId,
