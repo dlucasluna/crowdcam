@@ -177,9 +177,6 @@ export default function CameraPage() {
     }
   }, [roomId, participantName, cameraFacing, detectCapabilities, createPeerForViewer]);
 
-  // Store interval ref for cleanup
-  const reannounceRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const disconnect = useCallback(() => {
     if (reannounceRef.current) {
       clearInterval(reannounceRef.current);
