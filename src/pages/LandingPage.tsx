@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Monitor, Camera, Zap, Users, Tv, ArrowRight, QrCode } from "lucide-react";
+import { Monitor, Camera, Zap, Users, Tv, ArrowRight, QrCode, Crown, Check, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LandingPage() {
