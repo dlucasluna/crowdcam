@@ -190,49 +190,50 @@ export default function LandingPage() {
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {/* Câmera (free) */}
+            {/* Trial (24h free) */}
             <div className="p-6 rounded-xl border border-border text-left"
               style={{ background: "hsl(var(--card))" }}>
               <div className="flex items-center gap-2 mb-1">
-                <Camera className="w-5 h-5 text-muted-foreground" />
-                <span className="font-semibold text-lg">Câmera</span>
+                <Clock className="w-5 h-5 text-muted-foreground" />
+                <span className="font-semibold text-lg">Trial</span>
               </div>
-              <p className="text-xs text-muted-foreground mb-4">Para participantes do evento</p>
+              <p className="text-xs text-muted-foreground mb-4">Experimenta antes de decidir</p>
               <div className="flex items-baseline gap-1 mb-5">
                 <span className="text-3xl font-bold">Grátis</span>
+                <span className="text-muted-foreground text-sm">/ 24 horas</span>
               </div>
               <ul className="text-sm space-y-2.5 mb-6">
                 {[
-                  { text: "Transmitir câmera pelo celular", ok: true },
-                  { text: "Entrar em salas com código", ok: true },
-                  { text: "Sem cadastro necessário", ok: true },
-                  { text: "Criar salas", ok: false },
-                  { text: "Painel admin", ok: false },
-                  { text: "Multi-output", ok: false },
+                  "Criar salas",
+                  "Câmeras ilimitadas por sala",
+                  "Painel admin com grid ao vivo",
+                  "Multi-output simultâneo",
+                  "Acesso total por 24h",
                 ].map((f) => (
-                  <li key={f.text} className={`flex items-center gap-2 ${f.ok ? "text-muted-foreground" : "text-muted-foreground/40"}`}>
-                    {f.ok
-                      ? <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                      : <X className="w-4 h-4 flex-shrink-0" />
-                    }
-                    {f.text}
+                  <li key={f} className="flex items-center gap-2 text-muted-foreground">
+                    <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                    {f}
                   </li>
                 ))}
               </ul>
               <button
-                onClick={() => navigate("/auth")}
+                onClick={handleCTA}
                 className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-border text-foreground font-medium text-sm hover:bg-secondary transition-colors"
               >
-                Entrar como câmera
+                Criar conta e experimentar
+                <ArrowRight className="w-4 h-4" />
               </button>
+              <p className="text-xs text-muted-foreground text-center mt-3">
+                Requer cadastro. Sem cartão de crédito.
+              </p>
             </div>
 
             {/* Pro */}
             <div className="relative p-6 rounded-xl border-2 border-primary/40 text-left"
               style={{ background: "hsl(var(--card))" }}>
               <div className="absolute -top-3 right-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary text-primary-foreground">
-                <Clock className="w-3 h-3" />
-                24h grátis
+                <Crown className="w-3 h-3" />
+                Recomendado
               </div>
               <div className="flex items-center gap-2 mb-1">
                 <Crown className="w-5 h-5 text-primary" />
@@ -245,7 +246,7 @@ export default function LandingPage() {
               </div>
               <ul className="text-sm space-y-2.5 mb-6">
                 {[
-                  "Tudo do plano Câmera",
+                  "Tudo do plano Trial",
                   "Criar salas ilimitadas",
                   "Câmeras ilimitadas por sala",
                   "Painel admin com grid ao vivo",
@@ -264,11 +265,11 @@ export default function LandingPage() {
                 className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium text-base hover:bg-primary/90 transition-colors"
               >
                 <CreditCard className="w-4 h-4" />
-                Experimentar 24h grátis
+                Assinar Pro
                 <ArrowRight className="w-4 h-4" />
               </button>
               <p className="text-xs text-muted-foreground text-center mt-3">
-                Sem cobrança durante o trial. Cancela a qualquer momento.
+                Requer cadastro. Cancela a qualquer momento.
               </p>
             </div>
           </div>
