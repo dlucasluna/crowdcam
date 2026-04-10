@@ -10,9 +10,12 @@ export function generateRoomCode(): string {
 }
 
 export async function createRoom(code: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Não autenticado");
+
   const { data, error } = await supabase
     .from("rooms")
-    .insert({ code })
+    .insert({ code, user_id: user.id })
     .select()
     .single();
   if (error) throw error;
