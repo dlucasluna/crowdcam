@@ -301,7 +301,7 @@ export default function CameraPage() {
           <p className="text-sm text-muted-foreground mb-7">
             O teu nome aparece no telão quando fores selecionado
           </p>
-          <form onSubmit={(e) => { e.preventDefault(); if (participantName.trim()) setStatus("idle"); }}>
+          <form onSubmit={(e) => { e.preventDefault(); if (participantName.trim()) { setStatus("idle"); } }}>
             <input
               type="text"
               className="w-full px-4 py-3.5 bg-secondary border border-border rounded-lg text-foreground text-center text-lg placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors mb-4"
