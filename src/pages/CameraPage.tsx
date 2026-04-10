@@ -132,9 +132,8 @@ export default function CameraPage() {
       const id = `cam-${participantName.replace(/\s/g, "-")}-${Date.now()}`;
       participantIdRef.current = id;
 
-      const channel = createSignalingChannel(roomId, id, async (msg: SignalMessage) => {
+      const channel = await createSignalingChannel(roomId, id, async (msg: SignalMessage) => {
         if (msg.type === "offer") {
-          // A viewer wants our stream
           let pc = peersRef.current.get(msg.from);
           if (!pc) {
             pc = createPeerForViewer(msg.from)!;
@@ -152,14 +151,19 @@ export default function CameraPage() {
 
       channelRef.current = channel;
 
-      // Announce join
-      setTimeout(() => {
+      // Send join immediately, then re-announce periodically for late joiners
+      const announceJoin = () => {
         sendSignal(channel, {
           type: "join",
           from: id,
           payload: { name: participantName },
         });
-      }, 500);
+      };
+      
+      announceJoin();
+      // Re-announce every 3s for 15s to catch late-subscribing admins/outputs
+      const reannounceInterval = setInterval(announceJoin, 3000);
+      setTimeout(() => clearInterval(reannounceInterval), 15000);
 
       setStatus("live");
     } catch (err: any) {
