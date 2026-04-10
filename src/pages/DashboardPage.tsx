@@ -138,7 +138,12 @@ export default function DashboardPage() {
           )}
           <span className="text-sm text-muted-foreground flex items-center gap-1.5">
             <User className="w-3.5 h-3.5" />
-            {user?.user_metadata?.full_name || user?.email}
+            <span className="flex flex-col items-end leading-tight">
+              {user?.user_metadata?.full_name && (
+                <span className="text-foreground font-medium">{user.user_metadata.full_name}</span>
+              )}
+              <span className="text-xs">{user?.email}</span>
+            </span>
           </span>
           <button
             onClick={handleSignOut}
