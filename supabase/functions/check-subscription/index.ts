@@ -47,25 +47,39 @@ serve(async (req) => {
       });
     }
 
-    const customerId = customers.data[0].id;
+    // Check both active and trialing subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
-      status: "active",
-      limit: 1,
+      limit: 10,
     });
 
-    const hasActive = subscriptions.data.length > 0;
-    let subscriptionEnd = null;
+    const activeSub = subscriptions.data.find(
+      (s) => s.status === "active" || s.status === "trialing"
+    );
 
-    if (hasActive) {
-      subscriptionEnd = new Date(subscriptions.data[0].current_period_end * 1000).toISOString();
-      logStep("Active subscription", { end: subscriptionEnd });
+    if (activeSub) {
+      const subscriptionEnd = new Date(activeSub.current_period_end * 1000).toISOString();
+      const trialEnd = activeSub.trial_end
+        ? new Date(activeSub.trial_end * 1000).toISOString()
+        : null;
+      logStep("Active/trialing subscription", { status: activeSub.status, end: subscriptionEnd });
+
+      return new Response(JSON.stringify({
+        subscribed: true,
+        status: activeSub.status,
+        trial_end: trialEnd,
+        subscription_end: subscriptionEnd,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
-    return new Response(JSON.stringify({
-      subscribed: hasActive,
-      subscription_end: subscriptionEnd,
-    }), {
+    logStep("No active subscription");
+    return new Response(JSON.stringify({ subscribed: false }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
