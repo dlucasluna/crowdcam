@@ -50,7 +50,7 @@ serve(async (req) => {
     const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : email,
-      line_items: [{ price: "price_1TKgvHAj2Jw5RGkh6ZW10OzL", quantity: 1 }],
+      line_items: [{ price: "price_1TKisGAj2Jw5RGkhjWoKDdOJ", quantity: 1 }],
       mode: "subscription",
       success_url: `${req.headers.get("origin")}/dashboard?checkout=success`,
       cancel_url: `${req.headers.get("origin")}/dashboard?checkout=cancel`,
