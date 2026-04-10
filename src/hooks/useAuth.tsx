@@ -8,6 +8,8 @@ type AuthContextType = {
   loading: boolean;
   subscribed: boolean;
   subscriptionEnd: string | null;
+  trialEnd: string | null;
+  isTrial: boolean;
   checkingSubscription: boolean;
   refreshSubscription: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -19,6 +21,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   subscribed: false,
   subscriptionEnd: null,
+  trialEnd: null,
+  isTrial: false,
   checkingSubscription: true,
   refreshSubscription: async () => {},
   signOut: async () => {},
@@ -30,6 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [subscribed, setSubscribed] = useState(false);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [trialEnd, setTrialEnd] = useState<string | null>(null);
+  const [isTrial, setIsTrial] = useState(false);
   const [checkingSubscription, setCheckingSubscription] = useState(true);
 
   const checkSubscription = useCallback(async () => {
@@ -39,6 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       setSubscribed(data?.subscribed ?? false);
       setSubscriptionEnd(data?.subscription_end ?? null);
+      setTrialEnd(data?.trial_end ?? null);
+      setIsTrial(data?.status === "trialing");
     } catch (err) {
       console.error("Error checking subscription:", err);
       setSubscribed(false);
@@ -65,18 +73,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Check subscription when user changes
   useEffect(() => {
     if (user) {
       checkSubscription();
     } else {
       setSubscribed(false);
       setSubscriptionEnd(null);
+      setTrialEnd(null);
+      setIsTrial(false);
       setCheckingSubscription(false);
     }
   }, [user, checkSubscription]);
 
-  // Periodic refresh every 60s
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(checkSubscription, 60000);
@@ -90,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, loading,
-      subscribed, subscriptionEnd, checkingSubscription,
+      subscribed, subscriptionEnd, trialEnd, isTrial, checkingSubscription,
       refreshSubscription: checkSubscription,
       signOut,
     }}>

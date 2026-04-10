@@ -34,14 +34,30 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
-    const session = await stripe.checkout.sessions.create({
+    // Check if user already had a trial (existing Stripe customer with past subscriptions)
+    let hadTrial = false;
+    if (customerId) {
+      const allSubs = await stripe.subscriptions.list({ customer: customerId, limit: 1 });
+      hadTrial = allSubs.data.length > 0;
+    }
+
+    const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: "price_1TKgvHAj2Jw5RGkh6ZW10OzL", quantity: 1 }],
       mode: "subscription",
       success_url: `${req.headers.get("origin")}/dashboard?checkout=success`,
       cancel_url: `${req.headers.get("origin")}/dashboard?checkout=cancel`,
-    });
+    };
+
+    // Only offer 24h trial to new users
+    if (!hadTrial) {
+      sessionParams.subscription_data = {
+        trial_end: Math.floor(Date.now() / 1000) + 86400, // 24 hours
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

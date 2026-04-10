@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { generateRoomCode, createRoom, listActiveRooms, deactivateRoom } from "@/lib/room-utils";
-import { Monitor, Camera, Trash2, LogIn, RefreshCw, LogOut, User, Crown, CreditCard, Check } from "lucide-react";
+import { Monitor, Camera, Trash2, LogIn, RefreshCw, LogOut, User, Crown, CreditCard, Check, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 type Room = { id: string; code: string; created_at: string; is_active: boolean };
@@ -11,7 +11,7 @@ type Room = { id: string; code: string; created_at: string; is_active: boolean }
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, signOut, subscribed, subscriptionEnd, checkingSubscription, refreshSubscription } = useAuth();
+  const { user, signOut, subscribed, subscriptionEnd, trialEnd, isTrial, checkingSubscription, refreshSubscription } = useAuth();
   const [joinCode, setJoinCode] = useState("");
   const [creating, setCreating] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -111,9 +111,9 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3">
           {subscribed && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-              style={{ background: "hsl(var(--success-soft))", color: "hsl(var(--success))" }}>
-              <Crown className="w-3 h-3" />
-              Pro
+              style={{ background: isTrial ? "hsl(var(--accent-soft))" : "hsl(var(--success-soft))", color: isTrial ? "hsl(var(--primary))" : "hsl(var(--success))" }}>
+              {isTrial ? <Clock className="w-3 h-3" /> : <Crown className="w-3 h-3" />}
+              {isTrial ? "Trial" : "Pro"}
             </span>
           )}
           <span className="text-sm text-muted-foreground flex items-center gap-1.5">
