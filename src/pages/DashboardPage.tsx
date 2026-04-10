@@ -7,7 +7,7 @@ import { Monitor, Camera, Trash2, LogIn, RefreshCw, LogOut, User, Crown, CreditC
 import TrialCountdown from "@/components/TrialCountdown";
 import { toast } from "sonner";
 
-type Room = { id: string; code: string; created_at: string; is_active: boolean };
+type Room = { id: string; code: string; name: string | null; created_at: string; is_active: boolean };
 
 export default function DashboardPage() {
   const navigate = useNavigate();
