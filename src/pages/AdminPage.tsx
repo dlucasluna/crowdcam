@@ -28,6 +28,7 @@ export default function AdminPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
   const [showQR, setShowQR] = useState(false);
+  const [copiedOutput, setCopiedOutput] = useState(false);
 
   const updateParticipantsList = useCallback(() => {
     setParticipants(Array.from(peersRef.current.values()));
@@ -144,7 +145,7 @@ export default function AdminPage() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
-  const [copiedOutput, setCopiedOutput] = useState(false);
+
 
   const openOutput = () => {
     window.open(`/output/${roomId}`, "_blank", "width=1920,height=1080");
