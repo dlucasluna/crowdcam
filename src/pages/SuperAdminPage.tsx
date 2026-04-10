@@ -245,12 +245,6 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
       setActionLoading(null);
     }
   };
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao remover plano");
-    } finally {
-      setActionLoading(null);
-    }
-  };
 
   if (loading || loadingSubs) return <p className="text-muted-foreground text-sm">Carregando...</p>;
 
