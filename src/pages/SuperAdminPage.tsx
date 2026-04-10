@@ -212,8 +212,8 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
     fetchSubs();
   }, [fetchSubs]);
 
-  const handleAssignPlan = async (displayName: string, email: string) => {
-    setActionLoading(displayName);
+  const handleAssignPlan = async (userId: string, email: string) => {
+    setActionLoading(userId);
     try {
       const { data, error } = await supabase.functions.invoke("admin-assign-plan", {
         body: { email, action: "assign" },
@@ -229,8 +229,8 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
     }
   };
 
-  const handleRemovePlan = async (displayName: string, email: string) => {
-    setActionLoading(displayName);
+  const handleRemovePlan = async (userId: string, email: string) => {
+    setActionLoading(userId);
     try {
       const { data, error } = await supabase.functions.invoke("admin-assign-plan", {
         body: { email, action: "remove" },
@@ -239,6 +239,12 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
       if (data?.error) throw new Error(data.error);
       toast.success("Plano removido com sucesso");
       fetchSubs();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao remover plano");
+    } finally {
+      setActionLoading(null);
+    }
+  };
     } catch (err: any) {
       toast.error(err.message || "Erro ao remover plano");
     } finally {
