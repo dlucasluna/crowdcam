@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Monitor, Camera, Zap, Users, Tv, ArrowRight, QrCode, Crown, Check, CreditCard } from "lucide-react";
+import { Monitor, Camera, Zap, Users, Tv, ArrowRight, QrCode, Crown, Check, X, CreditCard, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LandingPage() {
@@ -175,9 +175,9 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section className="px-6 py-20 border-t border-border/50">
-        <div className="max-w-[480px] mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4"
+      <section id="pricing" className="px-6 py-20 border-t border-border/50">
+        <div className="max-w-[800px] mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4"
             style={{
               background: "linear-gradient(135deg, #fff 0%, #aaa 100%)",
               WebkitBackgroundClip: "text",
@@ -185,36 +185,92 @@ export default function LandingPage() {
             }}>
             Simples e acessível
           </h2>
-          <p className="text-muted-foreground mb-10">
-            Um plano, tudo incluído. Cancela quando quiseres.
+          <p className="text-muted-foreground text-center mb-12">
+            Experimenta grátis durante 24 horas. Cancela quando quiseres.
           </p>
 
-          <div className="p-6 rounded-xl border-2 border-primary/40 text-left"
-            style={{ background: "hsl(var(--card))" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Crown className="w-5 h-5 text-primary" />
-              <span className="font-semibold text-lg">CrowdCam Pro</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Câmera (free) */}
+            <div className="p-6 rounded-xl border border-border text-left"
+              style={{ background: "hsl(var(--card))" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Camera className="w-5 h-5 text-muted-foreground" />
+                <span className="font-semibold text-lg">Câmera</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">Para participantes do evento</p>
+              <div className="flex items-baseline gap-1 mb-5">
+                <span className="text-3xl font-bold">Grátis</span>
+              </div>
+              <ul className="text-sm space-y-2.5 mb-6">
+                {[
+                  { text: "Transmitir câmera pelo celular", ok: true },
+                  { text: "Entrar em salas com código", ok: true },
+                  { text: "Sem cadastro necessário", ok: true },
+                  { text: "Criar salas", ok: false },
+                  { text: "Painel admin", ok: false },
+                  { text: "Multi-output", ok: false },
+                ].map((f) => (
+                  <li key={f.text} className={`flex items-center gap-2 ${f.ok ? "text-muted-foreground" : "text-muted-foreground/40"}`}>
+                    {f.ok
+                      ? <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                      : <X className="w-4 h-4 flex-shrink-0" />
+                    }
+                    {f.text}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => navigate("/auth")}
+                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-border text-foreground font-medium text-sm hover:bg-secondary transition-colors"
+              >
+                Entrar como câmera
+              </button>
             </div>
-            <div className="flex items-baseline gap-1 mb-4">
-              <span className="text-4xl font-bold">4€</span>
-              <span className="text-muted-foreground">/mês</span>
+
+            {/* Pro */}
+            <div className="relative p-6 rounded-xl border-2 border-primary/40 text-left"
+              style={{ background: "hsl(var(--card))" }}>
+              <div className="absolute -top-3 right-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary text-primary-foreground">
+                <Clock className="w-3 h-3" />
+                24h grátis
+              </div>
+              <div className="flex items-center gap-2 mb-1">
+                <Crown className="w-5 h-5 text-primary" />
+                <span className="font-semibold text-lg">Pro</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">Para organizadores de eventos</p>
+              <div className="flex items-baseline gap-1 mb-5">
+                <span className="text-3xl font-bold">4€</span>
+                <span className="text-muted-foreground">/mês</span>
+              </div>
+              <ul className="text-sm space-y-2.5 mb-6">
+                {[
+                  "Tudo do plano Câmera",
+                  "Criar salas ilimitadas",
+                  "Câmeras ilimitadas por sala",
+                  "Painel admin com grid ao vivo",
+                  "Multi-output simultâneo",
+                  "Integração com OBS",
+                  "Suporte prioritário",
+                ].map((f) => (
+                  <li key={f} className="flex items-center gap-2 text-muted-foreground">
+                    <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={handleCTA}
+                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium text-base hover:bg-primary/90 transition-colors"
+              >
+                <CreditCard className="w-4 h-4" />
+                Experimentar 24h grátis
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <p className="text-xs text-muted-foreground text-center mt-3">
+                Sem cobrança durante o trial. Cancela a qualquer momento.
+              </p>
             </div>
-            <ul className="text-sm text-muted-foreground space-y-2 mb-6">
-              {["Câmeras ilimitadas", "Salas ilimitadas", "Multi-output simultâneo", "Latência ultra-baixa (WebRTC)", "Suporte prioritário"].map((f) => (
-                <li key={f} className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={handleCTA}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium text-base hover:bg-primary/90 transition-colors"
-            >
-              <CreditCard className="w-4 h-4" />
-              Começar agora
-              <ArrowRight className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </section>
