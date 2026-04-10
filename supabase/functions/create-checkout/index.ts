@@ -14,18 +14,20 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    if (!authHeader?.startsWith("Bearer ")) throw new Error("No authorization header");
 
     const token = authHeader.replace("Bearer ", "");
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData.user) throw new Error("Auth error: Invalid token");
-    const email = userData.user.email;
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) throw new Error("Auth error: Invalid token");
+
+    const email = claimsData.claims.email as string;
     if (!email) throw new Error("User not authenticated");
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
