@@ -220,6 +220,7 @@ export default function CameraPage() {
           facingMode: newFacing,
           width: { ideal: 1280 },
           height: { ideal: 720 },
+          frameRate: { ideal: 30, min: 24 },
         },
         audio: false,
       });
