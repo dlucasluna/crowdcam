@@ -21,6 +21,14 @@ export function createPeerConnection(
 ): RTCPeerConnection {
   const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
+  pc.onconnectionstatechange = () => {
+    console.log(`[WebRTC ${localId}→${remoteId}] Connection state:`, pc.connectionState);
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    console.log(`[WebRTC ${localId}→${remoteId}] ICE state:`, pc.iceConnectionState);
+  };
+
   pc.onicecandidate = (e) => {
     if (e.candidate) {
       sendSignal(channel, {
@@ -33,6 +41,7 @@ export function createPeerConnection(
   };
 
   pc.ontrack = (e) => {
+    console.log(`[WebRTC ${localId}→${remoteId}] ontrack fired, streams:`, e.streams.length);
     if (e.streams[0] && onTrack) {
       onTrack(e.streams[0]);
     }
