@@ -69,55 +69,60 @@ export default function OutputPage() {
   // Connect signaling
   useEffect(() => {
     if (!roomId) return;
+    let cancelled = false;
     const outputId = outputIdRef.current;
 
-    const channel = createSignalingChannel(roomId, outputId, async (msg: SignalMessage) => {
-      if (msg.type === "join") {
-        const cameraId = msg.from;
-        const pc = createPeerConnection(channel, outputId, cameraId, (remoteStream) => {
-          const peer = peersRef.current.get(cameraId);
-          if (peer) {
-            peer.stream = remoteStream;
-            // If this is the selected camera, attach
-            if (cameraId === selectedId || localStorage.getItem(`crowdcam-selected-${roomId}`) === cameraId) {
-              if (videoRef.current) videoRef.current.srcObject = remoteStream;
+    const init = async () => {
+      const channel = await createSignalingChannel(roomId, outputId, async (msg: SignalMessage) => {
+        if (msg.type === "join") {
+          const cameraId = msg.from;
+          const pc = createPeerConnection(channel, outputId, cameraId, (remoteStream) => {
+            const peer = peersRef.current.get(cameraId);
+            if (peer) {
+              peer.stream = remoteStream;
+              if (cameraId === selectedId || localStorage.getItem(`crowdcam-selected-${roomId}`) === cameraId) {
+                if (videoRef.current) videoRef.current.srcObject = remoteStream;
+              }
             }
+          });
+          peersRef.current.set(cameraId, { pc, stream: null });
+          await createOffer(pc, channel, outputId, cameraId);
+        } else if (msg.type === "answer") {
+          const peer = peersRef.current.get(msg.from);
+          if (peer) await handleAnswer(peer.pc, msg.payload);
+        } else if (msg.type === "ice") {
+          const peer = peersRef.current.get(msg.from);
+          if (peer) await handleIceCandidate(peer.pc, msg.payload);
+        } else if (msg.type === "leave") {
+          const peer = peersRef.current.get(msg.from);
+          if (peer) {
+            peer.pc.close();
+            peersRef.current.delete(msg.from);
           }
-        });
-        peersRef.current.set(cameraId, { pc, stream: null });
-        await createOffer(pc, channel, outputId, cameraId);
-      } else if (msg.type === "answer") {
-        const peer = peersRef.current.get(msg.from);
-        if (peer) await handleAnswer(peer.pc, msg.payload);
-      } else if (msg.type === "ice") {
-        const peer = peersRef.current.get(msg.from);
-        if (peer) await handleIceCandidate(peer.pc, msg.payload);
-      } else if (msg.type === "leave") {
-        const peer = peersRef.current.get(msg.from);
-        if (peer) {
-          peer.pc.close();
-          peersRef.current.delete(msg.from);
+        } else if (msg.type === "select") {
+          const newId = msg.payload?.selectedId || null;
+          setSelectedId(newId);
+          if (newId) {
+            const name = msg.payload?.selectedName || "";
+            setSelectedName(name);
+            setShowName(false);
+            setTimeout(() => setShowName(true), 300);
+          } else {
+            setShowName(false);
+          }
         }
-      } else if (msg.type === "select") {
-        // Admin broadcast selection via Realtime (cross-browser)
-        const newId = msg.payload?.selectedId || null;
-        setSelectedId(newId);
-        if (newId) {
-          const name = msg.payload?.selectedName || "";
-          setSelectedName(name);
-          setShowName(false);
-          setTimeout(() => setShowName(true), 300);
-        } else {
-          setShowName(false);
-        }
-      }
-    });
+      });
 
-    channelRef.current = channel;
-    setStatus("connected");
+      if (cancelled) { channel.unsubscribe(); return; }
+      channelRef.current = channel;
+      setStatus("connected");
+    };
+
+    init();
 
     return () => {
-      channel.unsubscribe();
+      cancelled = true;
+      channelRef.current?.unsubscribe();
       peersRef.current.forEach((p) => p.pc.close());
       peersRef.current.clear();
     };
