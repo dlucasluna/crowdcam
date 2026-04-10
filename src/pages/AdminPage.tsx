@@ -195,6 +195,13 @@ export default function AdminPage() {
             QR Code
           </button>
           <button
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border-light text-foreground text-[13px] font-medium hover:bg-card transition-colors"
+            onClick={copyOutputLink}
+          >
+            {copiedOutput ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+            {copiedOutput ? "Copiado!" : "Copiar link output"}
+          </button>
+          <button
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
             onClick={openOutput}
           >
