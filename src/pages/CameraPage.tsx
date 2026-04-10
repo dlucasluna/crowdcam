@@ -150,6 +150,13 @@ export default function CameraPage() {
           if (pc) {
             await handleIceCandidate(pc, msg.payload);
           }
+        } else if (msg.type === "request-join") {
+          // A new output just connected — re-announce so it discovers us
+          sendSignal(channel, {
+            type: "join",
+            from: id,
+            payload: { name: participantName },
+          });
         }
       });
 

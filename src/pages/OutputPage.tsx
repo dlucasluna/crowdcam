@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
   createSignalingChannel,
+  sendSignal,
   type SignalMessage,
 } from "@/lib/signaling";
 import {
@@ -203,6 +204,12 @@ export default function OutputPage() {
 
       channelRef.current = channel;
       setStatus("connected");
+
+      // Ask all cameras to re-announce so this output discovers them instantly
+      sendSignal(channel, {
+        type: "request-join",
+        from: outputId,
+      });
     };
 
     init();
