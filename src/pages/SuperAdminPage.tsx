@@ -193,7 +193,10 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
       if (data?.subscriptions) {
         const map: Record<string, SubscriptionInfo & { email?: string }> = {};
         for (const s of data.subscriptions) {
-          map[s.display_name || s.email] = { ...s, email: s.email };
+          // Key by user_id for reliable matching
+          if (s.user_id) {
+            map[s.user_id] = { ...s, email: s.email };
+          }
         }
         setSubs(map);
       }
