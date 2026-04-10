@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { generateRoomCode, createRoom, listActiveRooms, deactivateRoom } from "@/lib/room-utils";
-import { Monitor, Camera, Trash2, LogIn, RefreshCw, LogOut, User, Crown, CreditCard, Check, Clock } from "lucide-react";
+import { Monitor, Camera, Trash2, LogIn, RefreshCw, LogOut, User, Crown, CreditCard, Check, Clock, Shield } from "lucide-react";
+import { useAdmin } from "@/hooks/useAdmin";
 import TrialCountdown from "@/components/TrialCountdown";
 import { toast } from "sonner";
 
@@ -13,6 +14,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, signOut, subscribed, subscriptionEnd, trialEnd, isTrial, checkingSubscription, refreshSubscription } = useAuth();
+  const { isAdmin } = useAdmin();
   const [joinCode, setJoinCode] = useState("");
   const [creating, setCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -118,6 +120,15 @@ export default function DashboardPage() {
           <span>CrowdCam</span>
         </div>
         <div className="flex items-center gap-3">
+          {isAdmin && (
+            <button
+              onClick={() => navigate("/super-admin")}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              Admin
+            </button>
+          )}
           {subscribed && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
               style={{ background: isTrial ? "hsl(var(--accent-soft))" : "hsl(var(--success-soft))", color: isTrial ? "hsl(var(--primary))" : "hsl(var(--success))" }}>
