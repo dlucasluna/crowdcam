@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { findRoom } from "@/lib/room-utils";
 import {
   createSignalingChannel,
   sendSignal,
