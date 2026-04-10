@@ -15,6 +15,8 @@ export default function DashboardPage() {
   const { user, signOut, subscribed, subscriptionEnd, trialEnd, isTrial, checkingSubscription, refreshSubscription } = useAuth();
   const [joinCode, setJoinCode] = useState("");
   const [creating, setCreating] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newRoomName, setNewRoomName] = useState("");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
 
@@ -47,10 +49,16 @@ export default function DashboardPage() {
       toast.error("Precisas de uma assinatura Pro para criar salas");
       return;
     }
+    if (!showCreateForm) {
+      setShowCreateForm(true);
+      return;
+    }
     setCreating(true);
     try {
       const code = generateRoomCode();
-      await createRoom(code);
+      await createRoom(code, newRoomName.trim() || undefined);
+      setNewRoomName("");
+      setShowCreateForm(false);
       navigate(`/admin/${code}`);
     } catch (err) {
       console.error("Erro ao criar sala:", err);
