@@ -15,7 +15,8 @@ import {
 import { getCameraLink } from "@/lib/room-utils";
 import QRModal from "@/components/QRModal";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { Camera, QrCode, Maximize2 } from "lucide-react";
+import { Camera, QrCode, Maximize2, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 
 export default function AdminPage() {
   const { roomId } = useParams<{ roomId: string }>();
