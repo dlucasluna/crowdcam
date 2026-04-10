@@ -40,9 +40,22 @@ export default function AdminPage() {
 
     const init = async () => {
       const channel = await createSignalingChannel(roomId, adminId, async (msg: SignalMessage) => {
-        if (msg.type === "join") {
+      if (msg.type === "join") {
           const cameraId = msg.from;
           const cameraName = msg.payload?.name || cameraId;
+
+          // Skip if we already have an active connection for this camera
+          const existing = peersRef.current.get(cameraId);
+          if (existing && existing.pc.connectionState !== "failed" && existing.pc.connectionState !== "closed") {
+            console.log(`[Admin] Already have connection for ${cameraId}, skipping`);
+            // Update name if changed
+            existing.name = cameraName;
+            updateParticipantsList();
+            return;
+          }
+
+          // Close old connection if failed/closed
+          if (existing) existing.pc.close();
 
           const pc = createPeerConnection(channel, adminId, cameraId, (remoteStream) => {
             const peer = peersRef.current.get(cameraId);
