@@ -5,7 +5,7 @@ import {
   sendSignal,
   type SignalMessage,
 } from "@/lib/signaling";
-import { handleOffer, handleIceCandidate } from "@/lib/webrtc";
+import { handleOffer, handleIceCandidate, applyBitrateCap } from "@/lib/webrtc";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   Camera,
@@ -115,6 +115,7 @@ export default function CameraPage() {
           facingMode: cameraFacing,
           width: { ideal: 1280 },
           height: { ideal: 720 },
+          frameRate: { ideal: 30, min: 24 },
         },
         audio: false,
       });
