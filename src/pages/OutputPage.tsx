@@ -76,6 +76,14 @@ export default function OutputPage() {
       const channel = await createSignalingChannel(roomId, outputId, async (msg: SignalMessage) => {
         if (msg.type === "join") {
           const cameraId = msg.from;
+
+          // Skip if already have active connection
+          const existing = peersRef.current.get(cameraId);
+          if (existing && existing.pc.connectionState !== "failed" && existing.pc.connectionState !== "closed") {
+            return;
+          }
+          if (existing) existing.pc.close();
+
           const pc = createPeerConnection(channel, outputId, cameraId, (remoteStream) => {
             const peer = peersRef.current.get(cameraId);
             if (peer) {
