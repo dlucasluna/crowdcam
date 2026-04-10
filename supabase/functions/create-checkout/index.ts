@@ -54,10 +54,10 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/dashboard?checkout=cancel`,
     };
 
-    // Only offer 24h trial to new users
+    // Only offer trial to new users (Stripe requires minimum 48h)
     if (!hadTrial) {
       sessionParams.subscription_data = {
-        trial_end: Math.floor(Date.now() / 1000) + 86400,
+        trial_end: Math.floor(Date.now() / 1000) + 172800, // 48h (Stripe minimum)
       };
     }
 
