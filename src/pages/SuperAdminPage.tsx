@@ -292,7 +292,7 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
                   {!sub || !sub.subscribed ? (
                     <button
                       disabled={isLoading}
-                      onClick={() => handleAssignPlan(p.display_name || p.user_id, email)}
+                      onClick={() => handleAssignPlan(p.user_id, email)}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                       <Crown className="w-3 h-3" />
@@ -301,7 +301,7 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
                   ) : (
                     <button
                       disabled={isLoading}
-                      onClick={() => handleRemovePlan(p.display_name || p.user_id, email)}
+                      onClick={() => handleRemovePlan(p.user_id, email)}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
                     >
                       <Trash2 className="w-3 h-3" />
