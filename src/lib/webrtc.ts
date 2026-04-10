@@ -21,6 +21,10 @@ export function createPeerConnection(
 ): RTCPeerConnection {
   const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
+  // Viewer side must explicitly request a remote video track,
+  // otherwise the offer may be created without an m=video section.
+  pc.addTransceiver("video", { direction: "recvonly" });
+
   pc.onconnectionstatechange = () => {
     console.log(`[WebRTC ${localId}→${remoteId}] Connection state:`, pc.connectionState);
   };
@@ -42,8 +46,9 @@ export function createPeerConnection(
 
   pc.ontrack = (e) => {
     console.log(`[WebRTC ${localId}→${remoteId}] ontrack fired, streams:`, e.streams.length);
-    if (e.streams[0] && onTrack) {
-      onTrack(e.streams[0]);
+    const stream = e.streams[0] ?? new MediaStream([e.track]);
+    if (onTrack) {
+      onTrack(stream);
     }
   };
 
