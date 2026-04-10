@@ -30,6 +30,24 @@ export async function findRoom(code: string) {
   return data;
 }
 
+export async function listActiveRooms() {
+  const { data, error } = await supabase
+    .from("rooms")
+    .select()
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function deactivateRoom(code: string) {
+  const { error } = await supabase
+    .from("rooms")
+    .update({ is_active: false })
+    .eq("code", code);
+  if (error) throw error;
+}
+
 export function getCameraLink(roomId: string) {
   return `${window.location.origin}/cam/${roomId}`;
 }

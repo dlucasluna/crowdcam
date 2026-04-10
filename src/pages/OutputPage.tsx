@@ -36,6 +36,7 @@ export default function OutputPage() {
   const [selectedId, setSelectedId] = useState<string | null>(() => selectedIdRef.current);
   const [selectedName, setSelectedName] = useState(() => selectedNameRef.current);
   const [showName, setShowName] = useState(false);
+  const [nameVisible, setNameVisible] = useState(true);
   const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
 
   const clearNameTimeout = useCallback(() => {
@@ -194,6 +195,8 @@ export default function OutputPage() {
           const newId = msg.payload?.selectedId || null;
           const newName = msg.payload?.selectedName || "";
           applySelection(newId, newName);
+        } else if (msg.type === "show-name") {
+          setNameVisible(msg.payload?.visible ?? true);
         }
       });
 
@@ -239,7 +242,7 @@ export default function OutputPage() {
       {selectedId ? (
         <>
           <video ref={videoRef} className="w-full h-full object-contain" autoPlay playsInline muted />
-          {selectedName && (
+          {selectedName && nameVisible && (
             <div
               className="absolute z-10 pointer-events-none"
               style={{
