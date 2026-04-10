@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   createSignalingChannel,
   sendSignal,
@@ -15,11 +15,12 @@ import {
 import { getCameraLink } from "@/lib/room-utils";
 import QRModal from "@/components/QRModal";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { Camera, QrCode, Maximize2, Copy, Check } from "lucide-react";
+import { Camera, QrCode, Maximize2, Copy, Check, LogOut, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  const navigate = useNavigate();
   const channelRef = useRef<RealtimeChannel | null>(null);
   const peersRef = useRef<Map<string, PeerInfo>>(new Map());
   const adminIdRef = useRef(`admin-${Date.now()}`);
@@ -29,6 +30,7 @@ export default function AdminPage() {
   const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
   const [showQR, setShowQR] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
+  const [showNameOnOutput, setShowNameOnOutput] = useState(true);
 
   const updateParticipantsList = useCallback(() => {
     setParticipants(Array.from(peersRef.current.values()));
@@ -37,39 +39,28 @@ export default function AdminPage() {
   useEffect(() => {
     if (!roomId) return;
     let cancelled = false;
-
     const adminId = adminIdRef.current;
 
     const init = async () => {
       const channel = await createSignalingChannel(roomId, adminId, async (msg: SignalMessage) => {
-      if (msg.type === "join") {
+        if (msg.type === "join") {
           const cameraId = msg.from;
           const cameraName = msg.payload?.name || cameraId;
-
-          // Skip if we already have an active connection for this camera
           const existing = peersRef.current.get(cameraId);
           if (existing && existing.pc.connectionState !== "failed" && existing.pc.connectionState !== "closed") {
-            console.log(`[Admin] Already have connection for ${cameraId}, skipping`);
-            // Update name if changed
             existing.name = cameraName;
             updateParticipantsList();
             return;
           }
-
-          // Close old connection if failed/closed
           if (existing) existing.pc.close();
 
           const pc = createPeerConnection(channel, adminId, cameraId, (remoteStream) => {
             const peer = peersRef.current.get(cameraId);
-            if (peer) {
-              peer.stream = remoteStream;
-              updateParticipantsList();
-            }
+            if (peer) { peer.stream = remoteStream; updateParticipantsList(); }
           });
 
           peersRef.current.set(cameraId, { id: cameraId, name: cameraName, pc, stream: null });
           updateParticipantsList();
-
           await createOffer(pc, channel, adminId, cameraId);
         } else if (msg.type === "answer") {
           const pc = peersRef.current.get(msg.from)?.pc;
@@ -109,27 +100,18 @@ export default function AdminPage() {
     if (selectedId) {
       localStorage.setItem(`crowdcam-selected-${roomId}`, selectedId);
       const peer = peersRef.current.get(selectedId);
-      if (peer) {
-        localStorage.setItem(`crowdcam-selected-name-${roomId}`, peer.name);
-      }
+      if (peer) localStorage.setItem(`crowdcam-selected-name-${roomId}`, peer.name);
     } else {
       localStorage.removeItem(`crowdcam-selected-${roomId}`);
       localStorage.removeItem(`crowdcam-selected-name-${roomId}`);
     }
-    window.dispatchEvent(
-      new StorageEvent("storage", {
-        key: `crowdcam-selected-${roomId}`,
-        newValue: selectedId,
-      })
-    );
+    window.dispatchEvent(new StorageEvent("storage", { key: `crowdcam-selected-${roomId}`, newValue: selectedId }));
   }, [selectedId, roomId]);
 
-  // Broadcast selection only when it changes (not periodically)
+  // Broadcast selection
   const lastBroadcastedRef = useRef<string | null | undefined>(undefined);
-
   useEffect(() => {
     if (status !== "connected" || !channelRef.current || !roomId) return;
-    // Skip if we already broadcasted this exact selection
     if (lastBroadcastedRef.current === selectedId) return;
     lastBroadcastedRef.current = selectedId;
 
@@ -141,11 +123,30 @@ export default function AdminPage() {
     });
   }, [status, selectedId, roomId]);
 
+  // Broadcast show-name toggle
+  const lastShowNameRef = useRef<boolean | undefined>(undefined);
+  useEffect(() => {
+    if (status !== "connected" || !channelRef.current) return;
+    if (lastShowNameRef.current === showNameOnOutput) return;
+    lastShowNameRef.current = showNameOnOutput;
+
+    sendSignal(channelRef.current, {
+      type: "show-name",
+      from: adminIdRef.current,
+      payload: { visible: showNameOnOutput },
+    });
+  }, [status, showNameOnOutput]);
+
   const handleSelect = (id: string) => {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
-
+  const handleLeaveRoom = () => {
+    channelRef.current?.unsubscribe();
+    peersRef.current.forEach((p) => p.pc.close());
+    peersRef.current.clear();
+    navigate("/");
+  };
 
   const openOutput = () => {
     window.open(`/output/${roomId}`, "_blank", "width=1920,height=1080");
@@ -182,32 +183,47 @@ export default function AdminPage() {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
             style={{ background: "hsl(var(--accent-soft))", color: "hsl(var(--primary))" }}>
             <Camera className="w-3.5 h-3.5" />
             {participants.length} câmera{participants.length !== 1 ? "s" : ""}
           </span>
           <button
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border-light text-foreground text-[13px] font-medium hover:bg-card transition-colors"
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-[13px] font-medium transition-colors ${showNameOnOutput ? "border-primary/40 text-primary bg-primary/10" : "border-border-light text-muted-foreground hover:bg-card"}`}
+            onClick={() => setShowNameOnOutput((v) => !v)}
+            title={showNameOnOutput ? "Nome visível no output" : "Nome oculto no output"}
+          >
+            {showNameOnOutput ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            Nome
+          </button>
+          <button
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border-light text-foreground text-[13px] font-medium hover:bg-card transition-colors"
             onClick={() => setShowQR(true)}
           >
             <QrCode className="w-4 h-4" />
             QR Code
           </button>
           <button
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border-light text-foreground text-[13px] font-medium hover:bg-card transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border-light text-foreground text-[13px] font-medium hover:bg-card transition-colors"
             onClick={copyOutputLink}
           >
             {copiedOutput ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-            {copiedOutput ? "Copiado!" : "Copiar link output"}
+            {copiedOutput ? "Copiado!" : "Output link"}
           </button>
           <button
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
             onClick={openOutput}
           >
             <Maximize2 className="w-4 h-4" />
-            Abrir output
+            Output
+          </button>
+          <button
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-destructive/30 text-destructive text-[13px] font-medium hover:bg-destructive/10 transition-colors"
+            onClick={handleLeaveRoom}
+          >
+            <LogOut className="w-4 h-4" />
+            Sair
           </button>
         </div>
       </div>
@@ -232,12 +248,7 @@ export default function AdminPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {participants.map((p) => (
-              <FeedCard
-                key={p.id}
-                peer={p}
-                isSelected={selectedId === p.id}
-                onSelect={() => handleSelect(p.id)}
-              />
+              <FeedCard key={p.id} peer={p} isSelected={selectedId === p.id} onSelect={() => handleSelect(p.id)} />
             ))}
           </div>
         )}
@@ -264,7 +275,6 @@ function FeedCard({ peer, isSelected, onSelect }: { peer: PeerInfo; isSelected: 
         background: "hsl(var(--card))",
         borderColor: isSelected ? "hsl(var(--primary))" : "hsl(var(--border))",
         boxShadow: isSelected ? "0 0 0 1px hsl(var(--primary)), 0 0 30px rgba(59,130,246,0.15)" : "none",
-        transform: isSelected ? "scale(1)" : undefined,
       }}
       onClick={onSelect}
       onMouseEnter={(e) => { if (!isSelected) (e.currentTarget.style.borderColor = "hsl(var(--muted-foreground))"); }}

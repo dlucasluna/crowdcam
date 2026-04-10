@@ -36,6 +36,7 @@ export default function OutputPage() {
   const [selectedId, setSelectedId] = useState<string | null>(() => selectedIdRef.current);
   const [selectedName, setSelectedName] = useState(() => selectedNameRef.current);
   const [showName, setShowName] = useState(false);
+  const [nameVisible, setNameVisible] = useState(true);
   const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
 
   const clearNameTimeout = useCallback(() => {
