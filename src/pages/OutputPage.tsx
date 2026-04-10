@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
   createSignalingChannel,
-  sendSignal,
   type SignalMessage,
 } from "@/lib/signaling";
 import {
@@ -14,59 +13,132 @@ import {
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { Monitor } from "lucide-react";
 
+type OutputPeer = {
+  pc: RTCPeerConnection;
+  stream: MediaStream | null;
+};
+
 export default function OutputPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const peersRef = useRef<Map<string, { pc: RTCPeerConnection; stream: MediaStream | null }>>(new Map());
+  const peersRef = useRef<Map<string, OutputPeer>>(new Map());
   const videoRef = useRef<HTMLVideoElement>(null);
   const outputIdRef = useRef(`output-${Date.now()}`);
+  const nameTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectedIdRef = useRef<string | null>(
+    localStorage.getItem(`crowdcam-selected-${roomId}`)
+  );
+  const selectedNameRef = useRef(
+    localStorage.getItem(`crowdcam-selected-name-${roomId}`) || ""
+  );
 
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => localStorage.getItem(`crowdcam-selected-${roomId}`)
-  );
-  const [selectedName, setSelectedName] = useState(
-    () => localStorage.getItem(`crowdcam-selected-name-${roomId}`) || ""
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(() => selectedIdRef.current);
+  const [selectedName, setSelectedName] = useState(() => selectedNameRef.current);
   const [showName, setShowName] = useState(false);
   const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
 
-  // Listen for admin selection via localStorage
+  const clearNameTimeout = useCallback(() => {
+    if (nameTimeoutRef.current) {
+      clearTimeout(nameTimeoutRef.current);
+      nameTimeoutRef.current = null;
+    }
+  }, []);
+
+  const attachStreamToVideo = useCallback((stream: MediaStream | null) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.srcObject !== stream) {
+      video.srcObject = stream;
+    }
+
+    if (stream) {
+      video.play().catch(() => undefined);
+    }
+  }, []);
+
+  const revealName = useCallback(
+    (delay: number) => {
+      clearNameTimeout();
+      setShowName(false);
+
+      if (!selectedNameRef.current) return;
+
+      nameTimeoutRef.current = setTimeout(() => {
+        setShowName(true);
+      }, delay);
+    },
+    [clearNameTimeout]
+  );
+
+  const applySelection = useCallback(
+    (newId: string | null, newName: string) => {
+      const normalizedName = newId ? newName : "";
+      const idChanged = selectedIdRef.current !== newId;
+      const nameChanged = selectedNameRef.current !== normalizedName;
+
+      if (!idChanged && !nameChanged) {
+        if (newId) {
+          const existingPeer = peersRef.current.get(newId);
+          if (existingPeer?.stream) {
+            attachStreamToVideo(existingPeer.stream);
+          }
+        }
+        return;
+      }
+
+      selectedIdRef.current = newId;
+      selectedNameRef.current = normalizedName;
+      setSelectedId(newId);
+      setSelectedName(normalizedName);
+
+      if (!newId) {
+        clearNameTimeout();
+        setShowName(false);
+        attachStreamToVideo(null);
+        return;
+      }
+
+      const peer = peersRef.current.get(newId);
+      if (peer?.stream) {
+        attachStreamToVideo(peer.stream);
+      }
+
+      revealName(idChanged ? 300 : 150);
+    },
+    [attachStreamToVideo, clearNameTimeout, revealName]
+  );
+
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === `crowdcam-selected-${roomId}`) {
-        setSelectedId(e.newValue);
-        const name = localStorage.getItem(`crowdcam-selected-name-${roomId}`);
-        setSelectedName(name || "");
-        if (e.newValue) {
-          setShowName(false);
-          setTimeout(() => setShowName(true), 300);
-        } else {
-          setShowName(false);
-        }
+      if (
+        e.key !== `crowdcam-selected-${roomId}` &&
+        e.key !== `crowdcam-selected-name-${roomId}`
+      ) {
+        return;
       }
+
+      const nextId = localStorage.getItem(`crowdcam-selected-${roomId}`);
+      const nextName = localStorage.getItem(`crowdcam-selected-name-${roomId}`) || "";
+      applySelection(nextId, nextName);
     };
+
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
-  }, [roomId]);
-
-  // Attach selected stream to video
-  const attachSelected = useCallback(() => {
-    if (!videoRef.current) return;
-    if (!selectedId) {
-      videoRef.current.srcObject = null;
-      return;
-    }
-    const peer = peersRef.current.get(selectedId);
-    if (peer?.stream) {
-      videoRef.current.srcObject = peer.stream;
-    }
-  }, [selectedId]);
+  }, [roomId, applySelection]);
 
   useEffect(() => {
-    attachSelected();
-  }, [selectedId, attachSelected]);
+    if (!selectedId) {
+      attachStreamToVideo(null);
+      return;
+    }
 
-  // Connect signaling
+    const peer = peersRef.current.get(selectedId);
+    if (peer?.stream) {
+      attachStreamToVideo(peer.stream);
+    }
+  }, [selectedId, attachStreamToVideo]);
+
   useEffect(() => {
     if (!roomId) return;
     let cancelled = false;
@@ -76,23 +148,29 @@ export default function OutputPage() {
       const channel = await createSignalingChannel(roomId, outputId, async (msg: SignalMessage) => {
         if (msg.type === "join") {
           const cameraId = msg.from;
-
-          // Skip if already have active connection
           const existing = peersRef.current.get(cameraId);
-          if (existing && existing.pc.connectionState !== "failed" && existing.pc.connectionState !== "closed") {
+
+          if (
+            existing &&
+            existing.pc.connectionState !== "failed" &&
+            existing.pc.connectionState !== "closed"
+          ) {
             return;
           }
+
           if (existing) existing.pc.close();
 
           const pc = createPeerConnection(channel, outputId, cameraId, (remoteStream) => {
             const peer = peersRef.current.get(cameraId);
-            if (peer) {
-              peer.stream = remoteStream;
-              if (cameraId === selectedId || localStorage.getItem(`crowdcam-selected-${roomId}`) === cameraId) {
-                if (videoRef.current) videoRef.current.srcObject = remoteStream;
-              }
+            if (!peer) return;
+
+            peer.stream = remoteStream;
+
+            if (selectedIdRef.current === cameraId) {
+              attachStreamToVideo(remoteStream);
             }
           });
+
           peersRef.current.set(cameraId, { pc, stream: null });
           await createOffer(pc, channel, outputId, cameraId);
         } else if (msg.type === "answer") {
@@ -107,21 +185,22 @@ export default function OutputPage() {
             peer.pc.close();
             peersRef.current.delete(msg.from);
           }
+
+          if (selectedIdRef.current === msg.from) {
+            applySelection(null, "");
+          }
         } else if (msg.type === "select") {
           const newId = msg.payload?.selectedId || null;
-          setSelectedId(newId);
-          if (newId) {
-            const name = msg.payload?.selectedName || "";
-            setSelectedName(name);
-            setShowName(false);
-            setTimeout(() => setShowName(true), 300);
-          } else {
-            setShowName(false);
-          }
+          const newName = msg.payload?.selectedName || "";
+          applySelection(newId, newName);
         }
       });
 
-      if (cancelled) { channel.unsubscribe(); return; }
+      if (cancelled) {
+        channel.unsubscribe();
+        return;
+      }
+
       channelRef.current = channel;
       setStatus("connected");
     };
@@ -130,44 +209,29 @@ export default function OutputPage() {
 
     return () => {
       cancelled = true;
+      clearNameTimeout();
+      attachStreamToVideo(null);
       channelRef.current?.unsubscribe();
       peersRef.current.forEach((p) => p.pc.close());
       peersRef.current.clear();
     };
-  }, [roomId]);
+  }, [roomId, applySelection, attachStreamToVideo, clearNameTimeout]);
 
-  // Polling backup
   useEffect(() => {
-    const interval = setInterval(() => {
-      const stored = localStorage.getItem(`crowdcam-selected-${roomId}`);
-      const storedName = localStorage.getItem(`crowdcam-selected-name-${roomId}`);
-      if (stored !== selectedId) {
-        setSelectedId(stored);
-        setSelectedName(storedName || "");
-        if (stored) {
-          setShowName(false);
-          setTimeout(() => setShowName(true), 300);
-        } else {
-          setShowName(false);
-        }
-      }
-    }, 500);
-    return () => clearInterval(interval);
-  }, [roomId, selectedId]);
-
-  // Show name on load if already selected
-  useEffect(() => {
-    if (selectedId && selectedName) {
-      setTimeout(() => setShowName(true), 600);
+    if (selectedIdRef.current && selectedNameRef.current) {
+      revealName(600);
     }
-  }, []);
+
+    return () => {
+      clearNameTimeout();
+    };
+  }, [clearNameTimeout, revealName]);
 
   return (
     <div className="h-screen w-screen bg-black flex items-center justify-center overflow-hidden relative">
       {selectedId ? (
         <>
           <video ref={videoRef} className="w-full h-full object-contain" autoPlay playsInline muted />
-          {/* Lower Third */}
           {selectedName && (
             <div
               className="absolute z-10 pointer-events-none"
