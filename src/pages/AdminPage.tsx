@@ -144,8 +144,19 @@ export default function AdminPage() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
+  const [copiedOutput, setCopiedOutput] = useState(false);
+
   const openOutput = () => {
     window.open(`/output/${roomId}`, "_blank", "width=1920,height=1080");
+  };
+
+  const copyOutputLink = () => {
+    const link = `${window.location.origin}/output/${roomId}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedOutput(true);
+      toast.success("Link do output copiado!");
+      setTimeout(() => setCopiedOutput(false), 2000);
+    });
   };
 
   const cameraLink = getCameraLink(roomId || "");
