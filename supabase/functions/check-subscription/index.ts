@@ -62,10 +62,21 @@ serve(async (req) => {
     );
 
     if (activeSub) {
-      const subscriptionEnd = new Date(activeSub.current_period_end * 1000).toISOString();
-      const trialEnd = activeSub.trial_end
-        ? new Date(activeSub.trial_end * 1000).toISOString()
-        : null;
+      let subscriptionEnd: string | null = null;
+      let trialEnd: string | null = null;
+
+      try {
+        if (activeSub.current_period_end) {
+          subscriptionEnd = new Date(activeSub.current_period_end * 1000).toISOString();
+        }
+      } catch { /* ignore */ }
+
+      try {
+        if (activeSub.trial_end) {
+          trialEnd = new Date(activeSub.trial_end * 1000).toISOString();
+        }
+      } catch { /* ignore */ }
+
       logStep("Active/trialing subscription", { status: activeSub.status, end: subscriptionEnd });
 
       return new Response(JSON.stringify({
