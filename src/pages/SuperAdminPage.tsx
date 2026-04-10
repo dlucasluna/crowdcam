@@ -181,8 +181,9 @@ function UsersTab({ profiles, loading }: { profiles: ProfileRow[]; loading: bool
 }
 
 function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loading: boolean }) {
-  const [subs, setSubs] = useState<Record<string, SubscriptionInfo>>({});
+  const [subs, setSubs] = useState<Record<string, SubscriptionInfo & { email?: string }>>({});
   const [loadingSubs, setLoadingSubs] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchSubs = useCallback(async () => {
     setLoadingSubs(true);
@@ -190,9 +191,9 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
       const { data, error } = await supabase.functions.invoke("admin-list-subscriptions");
       if (error) throw error;
       if (data?.subscriptions) {
-        const map: Record<string, SubscriptionInfo> = {};
+        const map: Record<string, SubscriptionInfo & { email?: string }> = {};
         for (const s of data.subscriptions) {
-          map[s.email] = s;
+          map[s.display_name || s.email] = { ...s, email: s.email };
         }
         setSubs(map);
       }
@@ -208,6 +209,40 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
     fetchSubs();
   }, [fetchSubs]);
 
+  const handleAssignPlan = async (displayName: string, email: string) => {
+    setActionLoading(displayName);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-assign-plan", {
+        body: { email, action: "assign" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Plano atribuído com sucesso");
+      fetchSubs();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atribuir plano");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRemovePlan = async (displayName: string, email: string) => {
+    setActionLoading(displayName);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-assign-plan", {
+        body: { email, action: "remove" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Plano removido com sucesso");
+      fetchSubs();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao remover plano");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading || loadingSubs) return <p className="text-muted-foreground text-sm">Carregando...</p>;
 
   return (
@@ -218,18 +253,20 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
             <th className="px-4 py-3">Nome</th>
             <th className="px-4 py-3">Estado</th>
             <th className="px-4 py-3">Válido até</th>
+            <th className="px-4 py-3">Ações</th>
           </tr>
         </thead>
         <tbody>
           {profiles.map((p) => {
-            // Match by display_name email — we need to look up by email via edge function
             const sub = subs[p.display_name || ""] || null;
             const status = sub?.status;
+            const email = sub?.email || p.display_name || "";
+            const isLoading = actionLoading === (p.display_name || p.user_id);
             return (
               <tr key={p.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors">
                 <td className="px-4 py-3 font-medium">{p.display_name || "—"}</td>
                 <td className="px-4 py-3">
-                  {!sub ? (
+                  {!sub || !sub.subscribed ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-muted-foreground bg-secondary">
                       <XCircle className="w-3 h-3" /> Sem plano
                     </span>
@@ -248,12 +285,33 @@ function SubscriptionsTab({ profiles, loading }: { profiles: ProfileRow[]; loadi
                 <td className="px-4 py-3 text-muted-foreground text-xs">
                   {sub?.subscription_end ? new Date(sub.subscription_end).toLocaleDateString("pt-BR") : "—"}
                 </td>
+                <td className="px-4 py-3">
+                  {!sub || !sub.subscribed ? (
+                    <button
+                      disabled={isLoading}
+                      onClick={() => handleAssignPlan(p.display_name || p.user_id, email)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      <Crown className="w-3 h-3" />
+                      {isLoading ? "..." : "Atribuir Pro"}
+                    </button>
+                  ) : (
+                    <button
+                      disabled={isLoading}
+                      onClick={() => handleRemovePlan(p.display_name || p.user_id, email)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      {isLoading ? "..." : "Remover"}
+                    </button>
+                  )}
+                </td>
               </tr>
             );
           })}
           {profiles.length === 0 && (
             <tr>
-              <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">Nenhum utilizador encontrado</td>
+              <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Nenhum utilizador encontrado</td>
             </tr>
           )}
         </tbody>
