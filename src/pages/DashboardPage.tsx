@@ -7,7 +7,7 @@ import { Monitor, Camera, Trash2, LogIn, RefreshCw, LogOut, User, Crown, CreditC
 import TrialCountdown from "@/components/TrialCountdown";
 import { toast } from "sonner";
 
-type Room = { id: string; code: string; created_at: string; is_active: boolean };
+type Room = { id: string; code: string; name: string | null; created_at: string; is_active: boolean };
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -15,6 +15,8 @@ export default function DashboardPage() {
   const { user, signOut, subscribed, subscriptionEnd, trialEnd, isTrial, checkingSubscription, refreshSubscription } = useAuth();
   const [joinCode, setJoinCode] = useState("");
   const [creating, setCreating] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newRoomName, setNewRoomName] = useState("");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
 
@@ -47,10 +49,16 @@ export default function DashboardPage() {
       toast.error("Precisas de uma assinatura Pro para criar salas");
       return;
     }
+    if (!showCreateForm) {
+      setShowCreateForm(true);
+      return;
+    }
     setCreating(true);
     try {
       const code = generateRoomCode();
-      await createRoom(code);
+      await createRoom(code, newRoomName.trim() || undefined);
+      setNewRoomName("");
+      setShowCreateForm(false);
       navigate(`/admin/${code}`);
     } catch (err) {
       console.error("Erro ao criar sala:", err);
@@ -215,13 +223,33 @@ export default function DashboardPage() {
             Cria e gere as tuas salas CrowdCam.
           </p>
 
+          {showCreateForm && subscribed && (
+            <div className="mb-3 flex gap-2">
+              <input
+                type="text"
+                className="flex-1 px-4 py-3 bg-secondary border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                placeholder="Nome da sala (opcional)"
+                value={newRoomName}
+                onChange={(e) => setNewRoomName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreateRoom()}
+                autoFocus
+              />
+              <button
+                onClick={() => { setShowCreateForm(false); setNewRoomName(""); }}
+                className="px-3 py-2 rounded-lg border border-border text-muted-foreground text-sm hover:bg-card transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
           <button
             className="w-full inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-primary text-primary-foreground font-medium text-base hover:bg-primary/90 transition-colors disabled:opacity-50"
             onClick={handleCreateRoom}
             disabled={creating || !subscribed}
           >
             <Monitor className="w-5 h-5" />
-            {creating ? "Criando..." : "Criar nova sala"}
+            {creating ? "Criando..." : showCreateForm ? "Confirmar criação" : "Criar nova sala"}
           </button>
           {!subscribed && !checkingSubscription && (
             <p className="text-xs text-muted-foreground mt-2">Assina o plano Pro para criar salas</p>
@@ -254,9 +282,12 @@ export default function DashboardPage() {
                     className="flex items-center justify-between px-4 py-3 rounded-lg border border-border transition-colors"
                     style={{ background: "hsl(var(--card))" }}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-sm font-semibold tracking-wider text-primary">{room.code}</span>
-                      <span className="text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="font-mono text-sm font-semibold tracking-wider text-primary flex-shrink-0">{room.code}</span>
+                      {(room as any).name && (
+                        <span className="text-sm text-foreground truncate">{(room as any).name}</span>
+                      )}
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
                         {new Date(room.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>

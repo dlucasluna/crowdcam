@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { findRoom } from "@/lib/room-utils";
 import {
   createSignalingChannel,
   sendSignal,
@@ -31,6 +32,14 @@ export default function AdminPage() {
   const [showQR, setShowQR] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
   const [showNameOnOutput, setShowNameOnOutput] = useState(true);
+  const [roomName, setRoomName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!roomId) return;
+    findRoom(roomId).then((room) => {
+      if (room) setRoomName((room as any).name || null);
+    });
+  }, [roomId]);
 
   const updateParticipantsList = useCallback(() => {
     setParticipants(Array.from(peersRef.current.values()));
@@ -167,15 +176,18 @@ export default function AdminPage() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="px-6 py-4 flex items-center justify-between border-b border-border bg-secondary flex-shrink-0 flex-wrap gap-3">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-xl font-semibold">
-            <div className="w-2 h-2 rounded-full bg-primary" style={{ animation: "pulse-dot 2s ease-in-out infinite" }} />
-            <span>CrowdCam</span>
-          </div>
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium font-mono tracking-wider"
-            style={{ background: "hsl(var(--accent-soft))", color: "hsl(var(--primary))" }}>
-            {roomId}
-          </span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-xl font-semibold">
+              <div className="w-2 h-2 rounded-full bg-primary" style={{ animation: "pulse-dot 2s ease-in-out infinite" }} />
+              <span>CrowdCam</span>
+            </div>
+            {roomName && (
+              <span className="text-sm font-medium text-foreground">{roomName}</span>
+            )}
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium font-mono tracking-wider"
+              style={{ background: "hsl(var(--accent-soft))", color: "hsl(var(--primary))" }}>
+              {roomId}
+            </span>
           {status === "connected" && (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
               style={{ background: "hsl(var(--success-soft))", color: "hsl(var(--success))" }}>

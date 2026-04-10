@@ -9,13 +9,13 @@ export function generateRoomCode(): string {
   return result;
 }
 
-export async function createRoom(code: string) {
+export async function createRoom(code: string, name?: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Não autenticado");
 
   const { data, error } = await supabase
     .from("rooms")
-    .insert({ code, user_id: user.id })
+    .insert({ code, user_id: user.id, name: name || null } as any)
     .select()
     .single();
   if (error) throw error;
