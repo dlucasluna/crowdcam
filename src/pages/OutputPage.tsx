@@ -213,6 +213,14 @@ export default function OutputPage() {
         type: "request-join",
         from: outputId,
       });
+
+      // Ask the admin to resend the current selection (so a late-joining output
+      // immediately shows the camera that's already selected, instead of waiting
+      // for the admin to change selection).
+      sendSignal(channel, {
+        type: "request-select",
+        from: outputId,
+      });
     };
 
     init();
