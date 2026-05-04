@@ -482,6 +482,49 @@ export default function CameraPage() {
         </div>
       )}
 
+      {/* Quick controls (zoom + flash) — always visible above bottom bar */}
+      {status === "live" && (capabilities.zoom || capabilities.torch) && (
+        <div
+          className="absolute left-0 right-0 px-5 z-10 flex flex-col gap-3 items-center"
+          style={{ bottom: 120 }}
+        >
+          {capabilities.zoom && (
+            <div
+              className="flex items-center gap-3 px-4 py-2.5 rounded-full w-full max-w-[340px]"
+              style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(12px)" }}
+            >
+              <ZoomIn className="w-[18px] h-[18px] text-white/80 flex-shrink-0" />
+              <input
+                type="range"
+                min={capabilities.zoom.min}
+                max={Math.min(capabilities.zoom.max, 10)}
+                step={capabilities.zoom.step || 0.1}
+                value={zoom}
+                onChange={(e) => handleZoom(e.target.value)}
+                className="flex-1 accent-primary"
+              />
+              <span className="text-[12px] font-mono text-white/90 min-w-[36px] text-right tabular-nums">
+                {zoom.toFixed(1)}x
+              </span>
+            </div>
+          )}
+          {capabilities.torch && (
+            <button
+              onClick={toggleTorch}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full transition-colors"
+              style={{
+                background: torch ? "rgba(234,179,8,0.95)" : "rgba(0,0,0,0.55)",
+                backdropFilter: "blur(12px)",
+                color: torch ? "#000" : "#fff",
+              }}
+            >
+              <Zap className="w-[18px] h-[18px]" style={{ fill: torch ? "currentColor" : "none" }} />
+              <span className="text-[12px] font-medium">{torch ? "Flash on" : "Flash"}</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Bottom controls */}
       <div className="absolute bottom-0 left-0 right-0 px-5 py-5 flex justify-center gap-4 z-10"
         style={{ background: "linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)" }}>
