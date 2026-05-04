@@ -85,6 +85,21 @@ export default function AdminPage() {
             updateParticipantsList();
             setSelectedId((prev) => (prev === msg.from ? null : prev));
           }
+        } else if (msg.type === "request-select") {
+          // A late-joining output is asking for the current selection.
+          // Re-send both the selection and the show-name state so it syncs immediately.
+          const currentId = selectedIdRef.current;
+          const peer = currentId ? peersRef.current.get(currentId) : null;
+          sendSignal(channel, {
+            type: "select",
+            from: adminId,
+            payload: { selectedId: currentId, selectedName: peer?.name || "" },
+          });
+          sendSignal(channel, {
+            type: "show-name",
+            from: adminId,
+            payload: { visible: showNameRef.current },
+          });
         }
       });
 
