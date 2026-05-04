@@ -28,11 +28,17 @@ export default function AdminPage() {
 
   const [participants, setParticipants] = useState<PeerInfo[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedIdRef = useRef<string | null>(null);
   const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
   const [showQR, setShowQR] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
   const [showNameOnOutput, setShowNameOnOutput] = useState(true);
+  const showNameRef = useRef(true);
   const [roomName, setRoomName] = useState<string | null>(null);
+
+  // Keep refs in sync so the channel handler (created once) always sees the latest values
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+  useEffect(() => { showNameRef.current = showNameOnOutput; }, [showNameOnOutput]);
 
   useEffect(() => {
     if (!roomId) return;
