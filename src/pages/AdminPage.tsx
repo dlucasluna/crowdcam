@@ -28,11 +28,17 @@ export default function AdminPage() {
 
   const [participants, setParticipants] = useState<PeerInfo[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedIdRef = useRef<string | null>(null);
   const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
   const [showQR, setShowQR] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
   const [showNameOnOutput, setShowNameOnOutput] = useState(true);
+  const showNameRef = useRef(true);
   const [roomName, setRoomName] = useState<string | null>(null);
+
+  // Keep refs in sync so the channel handler (created once) always sees the latest values
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+  useEffect(() => { showNameRef.current = showNameOnOutput; }, [showNameOnOutput]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -85,6 +91,21 @@ export default function AdminPage() {
             updateParticipantsList();
             setSelectedId((prev) => (prev === msg.from ? null : prev));
           }
+        } else if (msg.type === "request-select") {
+          // A late-joining output is asking for the current selection.
+          // Re-send both the selection and the show-name state so it syncs immediately.
+          const currentId = selectedIdRef.current;
+          const peer = currentId ? peersRef.current.get(currentId) : null;
+          sendSignal(channel, {
+            type: "select",
+            from: adminId,
+            payload: { selectedId: currentId, selectedName: peer?.name || "" },
+          });
+          sendSignal(channel, {
+            type: "show-name",
+            from: adminId,
+            payload: { visible: showNameRef.current },
+          });
         }
       });
 
