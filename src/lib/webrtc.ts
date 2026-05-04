@@ -1,9 +1,32 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { sendSignal } from "./signaling";
 
+// STUN para descoberta de IP público + TURN público (Open Relay da Metered)
+// O TURN é essencial para conexões entre redes diferentes (4G ↔ WiFi, NAT simétrico, etc.)
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
+  // TURN público gratuito — relay quando P2P direto falha
+  {
+    urls: "turn:openrelay.metered.ca:80",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  {
+    urls: "turn:openrelay.metered.ca:443",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  {
+    urls: "turn:openrelay.metered.ca:443?transport=tcp",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  {
+    urls: "turns:openrelay.metered.ca:443?transport=tcp",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
 ];
 
 export interface PeerInfo {
